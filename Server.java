@@ -114,10 +114,16 @@ public class Server {
                 output = new PrintWriter(socket.getOutputStream());
                 String msg;
                 while (true) {
+                    System.out.println("bb");
                     //receive a message from the client
                     msg = null;
+                    /*try {Thread.sleep(1000 / Const.TPS);} catch (Exception e) {};
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }*/
                     try {
                         msg = input.readLine();
+                        System.out.println("bbbb");
                     } catch (Exception e) {
                         this.close();
                         break;
@@ -127,16 +133,18 @@ public class Server {
                         String[] args = msg.split(" ");
                         try {
                             // JOIN {red} {green} {blue} {*name}
-                            if (args[0].equals("PING")) {
+                            if (args[0].equals(Const.PING)) {
                                 this.alive = true;
                             }
                             else if(!(inLobby)){
-                                if (args[0].equals("LOBBIES")) {
+                                if (args[0].equals(Const.LOBBIES_LIST)) {
                                     for (Lobby lobby: lobbies) {
                                         this.print(Const.LOBBY + " " + lobby.name() + " " + lobby.playerCount());
                                     }
                                     this.print(Const.LOBBY_SELECT);
-                                } else if (args[0].equals("NEW")) {
+                                } else if (args[0].equals(Const.NEW_LOBBY)) {
+                                    this.print(Const.NAME);
+                                } else if (args[0].equals(Const.NAME)) {
                                     String lobbyName = args[1]; // Lobby name is the (players name)'s lobby
                                     boolean nameRepeated = true;
                                     int repeatCounter = 2; // If there is a lobby that has the same name it will add the value of this number to the end so that the lobby names don't match Ex. Ilya2's Lobby
@@ -155,14 +163,16 @@ public class Server {
                                     Lobby newLobby = new Lobby(lobbyName);
                                     newLobby.addPlayer(this.socket, args[1]); // Even though the lobby name might now have a number that doesn't mean the actual players name should change
                                     lobbies.add(newLobby);
+                                    this.print(Const.JOINED);
                                     inLobby = true;
-                                } else if (args[0].equals("JOIN")) {
+                                } else if (args[0].equals(Const.JOIN_LOBBY)) {
                                     String lobbyName = args[1];
                                     String playerName = args[2];
                                     for (Lobby lobby: lobbies) {
                                         if(lobby.name().equals(lobbyName)){
                                             inLobby = true;
                                             lobby.addPlayer(clientSocket, playerName);
+                                            this.print(Const.JOINED);
                                             break;
                                         }
                                     }
@@ -171,7 +181,7 @@ public class Server {
                                     }
                                 }
                             } else {
-                                if (args[0].equals("LEAVE")) { // Server doesn't need to listen to anything but this while the player is in a lobby. After the server gets this message it means the player isn't in a lobby
+                                if (args[0].equals(Const.LEAVE)) { // Server doesn't need to listen to anything but this while the player is in a lobby. After the server gets this message it means the player isn't in a lobby
                                     inLobby = false;
                                 }
                             }

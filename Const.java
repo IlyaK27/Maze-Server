@@ -37,6 +37,7 @@ public class Const {
     // Client to Server commands
     public static final String LOBBIES_LIST = "LOBBIES";
     public static final String NEW_LOBBY = "NEW";
+    public static final String NAME = "NAME"; 
     public static final String JOIN_LOBBY = "JOIN";
 
     // Client to Lobby commands
