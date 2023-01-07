@@ -4,6 +4,7 @@ import java.io.*;
 
 public class Lobby extends Thread{
     private String name;
+    private int playerCount;
     private ArrayList<PlayerHandler> playerHandlers;
     private ArrayList<Player> players;
     private HashMap<PlayerHandler, Player> playerHashMap;
@@ -13,6 +14,7 @@ public class Lobby extends Thread{
 
     public Lobby(String name){
         this.name = name;
+        this.playerCount = 0;
         this.hasPlayers = true;
         playerHandlers = new ArrayList<PlayerHandler>(Const.LOBBY_SIZE);
         players = new ArrayList<Player>(Const.LOBBY_SIZE);
@@ -48,16 +50,27 @@ public class Lobby extends Thread{
         this.playerHandlers.add(playerHandler);
         this.players.add(player);
         this.playerHashMap.put(playerHandler, player);
+        playerCount++;
+        playerHandler.start();
     }
     private void removePlayer(PlayerHandler player){
+        System.out.println(playerHashMap.get(player).name());
+        String playerName = playerHashMap.get(player).name();
         this.players.remove(playerHashMap.get(player));
         this.playerHandlers.remove(player);
+        this.playerCount--;
+        System.out.println("hey");
         if (players.size() == 0){
             hasPlayers = false;
         }
+        else{
+            for (PlayerHandler otherPlayers: playerHandlers) {
+                otherPlayers.print(Const.REMOVEP + " " + playerName);
+            }
+        }
     }
     public int playerCount(){
-        return players.size();
+        return this.playerCount;
     }
 
     //----------------------------------------------------------------
@@ -100,7 +113,7 @@ public class Lobby extends Thread{
                         break;
                     }
                     if (msg != null) {
-                        System.out.println("Message from the client: " + msg);
+                        System.out.println("Message from the clientL: " + msg);
                         String[] args = msg.split(" ");
                         try {
                             /*  JOIN {red} {green} {blue} {*name}
@@ -129,8 +142,12 @@ public class Lobby extends Thread{
                                     this.print("ERROR Player has not joined the game");
                                 }
                             }*/
+                            if (args[0].equals(Const.LEAVE)) { // LEAVE    
+                                this.print(Const.LEAVE);
+                                removePlayer(this);
+                            }
                         } catch (Exception e) {
-                            this.print("ERROR invalid arguments");
+                            this.print("LOBBY ERROR invalid arguments");
                             e.printStackTrace();
                         }
                     }

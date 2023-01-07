@@ -53,6 +53,7 @@ public class Const {
     public static final String LEAVE = "LEAVE"; // Client left lobby
 
     // Server to Client commands
+    public static final String CLEAR_LOBBIES = "CLEAR"; // Client clears its list of lobbies
     public static final String LOBBY = "LOBBY"; // Server sends name and current player count of specified lobby 
     public static final String LOBBY_SELECT = "SELECT"; // Tells the client to switch to lobby select screen
     public static final String JOINED = "JOINED"; // Server tells client they have joined the lobby they tried to join
