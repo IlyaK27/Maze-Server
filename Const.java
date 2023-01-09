@@ -42,6 +42,7 @@ public class Const {
 
     // Client to Lobby commands
     public static final String SELECTED = "SELECTED"; // Player has selected abilities
+    public static final String MY_ABILITIES = "MY_ABILITIES"; // Players abilities after this command
     public static final String RESELECT = "RESELECT"; // Player has gone to reselect abilities
     public static final String READY = "READY"; // Player has selected abilities and is ready to play
     public static final String UNREADY = "UNREADY"; // Player is not ready. Automatically happens when player goes to reselect abilities
