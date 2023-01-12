@@ -1,3 +1,4 @@
+import java.awt.Color;
 public class Const {
     public static final int PORT = 5001;
     public static final int LOBBY_SIZE = 4;
@@ -32,6 +33,19 @@ public class Const {
         return (int)(Math.sin(radians(angle)) * speed);
     }
 
+    // Player colors
+
+    // Maze tiles
+    public static final char START_TILE = 'S';
+    public static final char PATH = 'P';
+    public static final char WALL = 'W';
+    public static final char END_TILE = 'E';
+    // Maze info
+    public static final int STARTING_ROWS = 20;
+    public static final int STARTING_COLS = 20;
+    public static final int MIN_DISTANCE = 10;
+    public static final int PATH_CHANCE = 45;
+
     // Commands (See shared doc for more info)
     public static final String PING = "PING"; // Making sure client is still connected
     // Client to Server commands
@@ -61,6 +75,7 @@ public class Const {
     public static final String NO_LOBBY = "NO_LOBBY"; // Server tells the client it couldn't find a lobby with the name the client gave
 
     // Lobby to Client commands
+    public static final String NEW_PLAYER = "NEWP"; // New player has joined lobby 
     public static final String ABILITIES = "ABILITIES"; // Player has selected abilities
     public static final String REMOVEP = "REMOVEP"; // Player has left lobby, remove them from the player list
     public static final String NEWE = "NEWE"; // New enemy has spawned 

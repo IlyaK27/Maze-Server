@@ -99,15 +99,18 @@ public class Server {
         Heartbeat heartbeat;
         private boolean alive = true;
         private String lobbyName;
+        private boolean newLobby; // This variable makes it so that when the player sends the name command something different can happen depending on the state
         
         public PlayerHandler(Socket socket) { 
             this.socket = socket;
             this.heartbeat = new Heartbeat(this);
             this.heartbeat.start();
             this.lobbyName = "";
+            this.newLobby = false;
         }
         // Whether the socket is dead
         public boolean isDead() {
+            System.out.println("Server  " + this.socket + " " + this.output + " " + this.input);
             return this.socket == null || this.output == null || this.input == null;
         }
         public void run() {
@@ -146,45 +149,48 @@ public class Server {
                                 }
                                 this.print(Const.LOBBY_SELECT);
                             } else if (args[0].equals(Const.NEW_LOBBY)) { // NEW
-                                this.print(Const.NAME);
+                                this.print(Const.NAME + " " + Const.NEW_LOBBY);
+                                newLobby = true;
+                            } else if (args[0].equals(Const.JOIN_LOBBY)) { // JOIN lobbyName playerName
+                                String lobbyName = args[1];
+                                this.print(Const.NAME + " " + Const.JOIN_LOBBY + " " + lobbyName);
                             } else if (args[0].equals(Const.NAME)) { // NAME playerName
                                 lobbyName = args[1]; // Lobby name is the (players name)'s lobby
-                                boolean nameRepeated = true;
-                                int repeatCounter = 2; // If there is a lobby that has the same name it will add the value of this number to the end so that the lobby names don't match Ex. Ilya2's Lobby
-                                while(nameRepeated){
-                                    nameRepeated = false;
+                                if(newLobby){
+                                    boolean nameRepeated = true;
+                                    int repeatCounter = 2; // If there is a lobby that has the same name it will add the value of this number to the end so that the lobby names don't match Ex. Ilya2's Lobby
+                                    while(nameRepeated){
+                                        nameRepeated = false;
+                                        for (Lobby lobby: lobbies) {
+                                            if(lobby.name().equals(lobbyName)){
+                                                nameRepeated = true;
+                                                lobbyName = args[1] + repeatCounter; 
+                                                repeatCounter++;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    lobbyName = lobbyName + "'s";
+                                    Lobby newLobby = new Lobby(lobbyName);
+                                    this.print(Const.JOINED + " " + lobbyName);
+                                    lobbies.add(newLobby);
+                                    inLobby = true;
+                                    newLobby.addPlayer(clientSocket, this, args[1]); // Even though the lobby name might now have a number that doesn't mean the actual players name should change
+                                }else{
+                                    String playerName = args[2];
+                                    System.out.println("Lobbyplayername = " + playerName);
                                     for (Lobby lobby: lobbies) {
                                         if(lobby.name().equals(lobbyName)){
-                                            nameRepeated = true;
-                                            lobbyName = args[1] + repeatCounter; 
-                                            repeatCounter++;
+                                            this.print(Const.JOINED + " " + lobbyName);
+                                            inLobby = true;
+                                            lobby.addPlayer(clientSocket, this, playerName);
                                             break;
                                         }
                                     }
-                                }
-                                lobbyName = lobbyName + "'s";
-                                Lobby newLobby = new Lobby(lobbyName);
-                                newLobby.addPlayer(clientSocket, this, args[1]); // Even though the lobby name might now have a number that doesn't mean the actual players name should change
-                                lobbies.add(newLobby);
-                                this.print(Const.JOINED + " " + lobbyName);
-                                inLobby = true;
-                            } else if (args[0].equals(Const.JOIN_LOBBY)) { // JOIN lobbyName playerName
-                                lobbyName = args[1];
-                                String playerName = args[2];
-                                for (Lobby lobby: lobbies) {
-                                    if(lobby.name().equals(lobbyName)){
-                                        inLobby = true;
-                                        lobby.addPlayer(clientSocket, this, playerName);
-                                        this.print(Const.JOINED + " " + lobbyName);
-                                        break;
+                                    if(inLobby == false){ // This if statement will happen if the server couldn't find a lobby with the name that matches the one the client gave
+                                        this.print(Const.NO_LOBBY);
                                     }
                                 }
-                                if(inLobby == false){ // This if statement will happen if the server couldn't find a lobby with the name that matches the one the client gave
-                                    this.print(Const.NO_LOBBY);
-                                }// Server doesn't need to listen to anything but this while the player is in a lobby (besides PING). After the server gets this message it means the player isn't in a lobby
-                                //if (args[0].equals(Const.LEAVE)) { // After client leaves a lobby it sends the server the lobbies name so the server can delete the lobby if there is no one in it
-                                    //leaveLobby();
-                                //}
                             }
                         } catch (Exception e) {
                             this.print("SERVER ERROR invalid arguments");
@@ -207,9 +213,9 @@ public class Server {
         }
         public void leaveLobby(boolean alive){
             inLobby = false;
+            newLobby = false;
             this.alive = alive;
             for (Lobby lobby: lobbies) {
-                System.out.println(this.lobbyName + " " + lobby.name() + lobby.playerCount());
                 if(lobby.name().equals(this.lobbyName) && lobby.playerCount() == 0){
                     System.out.println("Lobby removed");
                     lobbies.remove(lobby);
