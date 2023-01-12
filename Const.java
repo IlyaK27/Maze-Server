@@ -9,6 +9,7 @@ public class Const {
     public static final int CLIENT_VIEW_RADIUS = 1500;
 
     public static final int HEARTBEAT_RATE = 60000;
+    public static final int COUNTDOWN = 3000; // 3 seconds
     
     public static final int TPS = 50;
 
@@ -44,7 +45,7 @@ public class Const {
     public static final int STARTING_ROWS = 20;
     public static final int STARTING_COLS = 20;
     public static final int MIN_DISTANCE = 10;
-    public static final int PATH_CHANCE = 45;
+    public static final int PATH_CHANCE = 55;
 
     // Commands (See shared doc for more info)
     public static final String PING = "PING"; // Making sure client is still connected
@@ -56,8 +57,8 @@ public class Const {
 
     // Client to Lobby commands
     public static final String SELECTED = "SELECTED"; // Player has selected abilities
+    public static final String RESELECT = "RESELECT"; // Player has went back to choose different abilities
     public static final String MY_ABILITIES = "MY_ABILITIES"; // Players abilities after this command
-    public static final String RESELECT = "RESELECT"; // Player has gone to reselect abilities
     public static final String READY = "READY"; // Player has selected abilities and is ready to play
     public static final String UNREADY = "UNREADY"; // Player is not ready. Automatically happens when player goes to reselect abilities
     public static final String MOVE = "MOVE"; // Client gives lobby what direction they just went

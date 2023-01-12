@@ -15,6 +15,7 @@ public class Lobby extends Thread{
     private Game game;
     private int round; 
     private boolean hasPlayers;
+    private boolean playing;
 
     public Lobby(String name){
         this.name = name;
@@ -29,13 +30,16 @@ public class Lobby extends Thread{
         colors.add(Color.YELLOW);
         colors.add(Color.ORANGE);
         this.round = 1;
+        this.playing = false;
         this.game = new Game(Const.STARTING_ROWS, Const.STARTING_COLS, this.round, Const.MIN_DISTANCE);
         this.game.constructMaze();
     }
 
     public void run(){
         while(hasPlayers){
+            while(playing){
 
+            }
         }
     }
 
@@ -76,10 +80,14 @@ public class Lobby extends Thread{
             System.out.println("New player");
             playerHandler.sHandler.print(Const.NEW_PLAYER + " " + playerHashMap.get(players).name() + " " + colorHex);
             if(players.getAbilities() != null){playerHandler.sHandler.print(Const.ABILITIES + " " + playerHashMap.get(players).name() + " " + players.getAbilities());}
+            if(players.ready){playerHandler.sHandler.print(Const.READY + " " + playerHashMap.get(players).name());}
         }
     }
     public int playerCount(){
         return this.playerCount;
+    }
+    public void startGameCountdown(){
+
     }
 
     //----------------------------------------------------------------
@@ -93,12 +101,14 @@ public class Lobby extends Thread{
         private String ability2;
         private String ultimate;
         Server.PlayerHandler sHandler;
+        private boolean ready;
         
         public PlayerHandler(Socket socket, Server.PlayerHandler sHandler) { 
             this.socket = socket;
             this.heartbeat = new Heartbeat(this);
             this.heartbeat.start();
             this.sHandler = sHandler;
+            this.ready = false;
         }
         // Whether the socket is dead
         public boolean isDead() {
@@ -157,6 +167,17 @@ public class Lobby extends Thread{
                             else if (args[0].equals(Const.SELECTED)) { // LEAVE    
                                 this.sHandler.print(Const.MY_ABILITIES);
                             }
+                            else if (args[0].equals(Const.RESELECT)) { // LEAVE    
+                                this.ready = false;
+                                for(PlayerHandler player: playerHandlers){
+                                    if(player.equals(this)){
+                                        this.sHandler.print(Const.RESELECT + " " + playerHashMap.get(this).name());
+                                    }
+                                    else{
+                                        player.sHandler.print(Const.UNREADY + " " + playerHashMap.get(this).name());
+                                    }
+                                }
+                            }
                             else if (args[0].equals(Const.MY_ABILITIES)) { // LEAVE    
                                 this.ability1 = args[1];
                                 this.ability2 = args[2];
@@ -165,14 +186,36 @@ public class Lobby extends Thread{
                                     for(PlayerHandler player: playerHandlers){
                                         if(player.equals(this)){
                                             System.out.println("EQUAL" + player.equals(this));
-                                            this.sHandler.print(Const.ABILITIES + " " + playerHashMap.get(player).name() + " " + ability1 + " " + ability2 + " " + ultimate + " ME");
+                                            this.sHandler.print(Const.ABILITIES + " " + playerHashMap.get(this).name() + " " + ability1 + " " + ability2 + " " + ultimate + " ME");
                                         }
-                                        else{this.sHandler.print(Const.ABILITIES + " " + playerHashMap.get(player).name() + " " + ability1 + " " + ability2 + " " + ultimate);}
+                                        else{
+                                            System.out.println("Other" + player.equals(this));
+                                            player.sHandler.print(Const.ABILITIES + " " + playerHashMap.get(this).name() + " " + ability1 + " " + ability2 + " " + ultimate);
+                                        }
                                     }
                                 }
                                 //playerHashMap.get(this).setAbility1(ability1);
                                 //playerHashMap.get(this).setAbility2(ability2);
                                 //playerHashMap.get(this).setUltimate(ultimate);
+                            }
+                            else if (args[0].equals(Const.READY)) { // LEAVE    
+                                ready = !ready;
+                                String message = " " + playerHashMap.get(this).name(); 
+                                if(ready){
+                                    message = Const.READY + message;
+                                }else{
+                                    message = Const.UNREADY + message;
+                                }
+                                boolean allReady = true;
+                                for(PlayerHandler player: playerHandlers){
+                                    player.sHandler.print(message);
+                                    if(!(player.ready())){
+                                        allReady = false;
+                                    }
+                                }if(allReady){
+                                    System.out.println("All players ready");
+                                    //startGameCountDown();
+                                } // If everyone is ready start the countdown timer for the game
                             }
                             else if (args[0].equals(Const.LEAVE)) { // LEAVE    
                                 System.out.println("Lobbyleave");
@@ -215,6 +258,9 @@ public class Lobby extends Thread{
             }
             return null;
         }
+        private boolean ready() {
+            return this.ready;
+        }
         public void close() {
             this.interrupt();
             // Stop the heartbeat subthread
@@ -256,6 +302,22 @@ public class Lobby extends Thread{
                         break;
                     }
                 }
+            }
+        }
+    }
+    class Countdown extends Thread {
+        Countdown() {
+        }
+        public void run() {
+            try {
+                Thread.sleep(Const.COUNTDOWN);
+            } catch (Exception e) {
+                
+            }
+            playing = true;
+            for(PlayerHandler players: playerHandlers){
+                // Before this print print all of players positions to players
+                //players.sHandler.print(Const.GAME_START);
             }
         }
     }
