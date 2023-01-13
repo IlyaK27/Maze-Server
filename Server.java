@@ -144,8 +144,10 @@ public class Server {
                             if (args[0].equals(Const.LOBBIES_LIST)) { // LOBBIES
                                 this.print(Const.CLEAR_LOBBIES);
                                 for (Lobby lobby: lobbies) {
-                                    if(lobby.playerCount() != 4 || lobby.playerCount() != 0)
-                                    this.print(Const.LOBBY + " " + lobby.name() + " " + lobby.playerCount());
+                                    System.out.println("lobbyname = " + lobbyName + " " + lobby.locked());
+                                    if(lobby.playerCount() != 4 || lobby.playerCount() != 0 && !(lobby.locked())){
+                                        this.print(Const.LOBBY + " " + lobby.name() + " " + lobby.playerCount());
+                                    }
                                 }
                                 this.print(Const.LOBBY_SELECT);
                             } else if (args[0].equals(Const.NEW_LOBBY)) { // NEW
@@ -180,7 +182,7 @@ public class Server {
                                     String playerName = args[2];
                                     System.out.println("Lobbyplayername = " + playerName);
                                     for (Lobby lobby: lobbies) {
-                                        if(lobby.name().equals(lobbyName)){
+                                        if(lobby.name().equals(lobbyName) && !(lobby.locked())){
                                             this.print(Const.JOINED + " " + lobbyName);
                                             inLobby = true;
                                             lobby.addPlayer(clientSocket, this, playerName);

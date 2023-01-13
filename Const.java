@@ -77,6 +77,7 @@ public class Const {
 
     // Lobby to Client commands
     public static final String NEW_PLAYER = "NEWP"; // New player has joined lobby 
+    public static final String GAME_START = "GAME_START"; // Tells players game has started and to switch to game screen
     public static final String ABILITIES = "ABILITIES"; // Player has selected abilities
     public static final String REMOVEP = "REMOVEP"; // Player has left lobby, remove them from the player list
     public static final String NEWE = "NEWE"; // New enemy has spawned 

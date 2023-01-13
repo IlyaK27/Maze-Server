@@ -16,6 +16,8 @@ public class Lobby extends Thread{
     private int round; 
     private boolean hasPlayers;
     private boolean playing;
+    private Countdown countdown;
+    private boolean locked; // Locked means no players can join once this is true
 
     public Lobby(String name){
         this.name = name;
@@ -33,6 +35,7 @@ public class Lobby extends Thread{
         this.playing = false;
         this.game = new Game(Const.STARTING_ROWS, Const.STARTING_COLS, this.round, Const.MIN_DISTANCE);
         this.game.constructMaze();
+        this.locked = false;
     }
 
     public void run(){
@@ -86,8 +89,12 @@ public class Lobby extends Thread{
     public int playerCount(){
         return this.playerCount;
     }
+    public boolean locked() {
+        return this.locked;
+    }
     public void startGameCountdown(){
-
+        this.countdown = new Countdown();
+        countdown.start();
     }
 
     //----------------------------------------------------------------
@@ -169,6 +176,7 @@ public class Lobby extends Thread{
                             }
                             else if (args[0].equals(Const.RESELECT)) { // LEAVE    
                                 this.ready = false;
+                                stopCountdown();
                                 for(PlayerHandler player: playerHandlers){
                                     if(player.equals(this)){
                                         this.sHandler.print(Const.RESELECT + " " + playerHashMap.get(this).name());
@@ -203,19 +211,24 @@ public class Lobby extends Thread{
                                 String message = " " + playerHashMap.get(this).name(); 
                                 if(ready){
                                     message = Const.READY + message;
+                                    boolean allReady = true;
+                                    for(PlayerHandler player: playerHandlers){
+                                        player.sHandler.print(message);
+                                        if(!(player.ready())){
+                                            allReady = false;
+                                        }
+                                    }if(allReady){
+                                        locked = true;
+                                        System.out.println("All players ready");
+                                        startGameCountdown();
+                                    } // If everyone is ready start the countdown timer for the game
                                 }else{
+                                    stopCountdown();
                                     message = Const.UNREADY + message;
-                                }
-                                boolean allReady = true;
-                                for(PlayerHandler player: playerHandlers){
-                                    player.sHandler.print(message);
-                                    if(!(player.ready())){
-                                        allReady = false;
+                                    for(PlayerHandler player: playerHandlers){
+                                        player.sHandler.print(message);
                                     }
-                                }if(allReady){
-                                    System.out.println("All players ready");
-                                    //startGameCountDown();
-                                } // If everyone is ready start the countdown timer for the game
+                               }
                             }
                             else if (args[0].equals(Const.LEAVE)) { // LEAVE    
                                 System.out.println("Lobbyleave");
@@ -260,6 +273,14 @@ public class Lobby extends Thread{
         }
         private boolean ready() {
             return this.ready;
+        }
+        private void stopCountdown(){
+            if(countdown != null){
+                countdown.interrupt();
+                countdown = null;
+                System.out.println("Countdown should die");
+                locked = false;
+            }
         }
         public void close() {
             this.interrupt();
@@ -312,12 +333,16 @@ public class Lobby extends Thread{
             try {
                 Thread.sleep(Const.COUNTDOWN);
             } catch (Exception e) {
-                
+
             }
-            playing = true;
-            for(PlayerHandler players: playerHandlers){
-                // Before this print print all of players positions to players
-                //players.sHandler.print(Const.GAME_START);
+            if(countdown != null){
+                playing = true;
+                for(PlayerHandler players: playerHandlers){
+                    players.ready = false;
+                    players.sHandler.print(Const.GAME_START);
+                }
+            }else if (countdown == null){
+                System.out.println("Countdown stopped");
             }
         }
     }

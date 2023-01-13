@@ -98,6 +98,16 @@ public class Game {
             }
         }
         // Randomly placing walls and paths
+        // Making start and end areas larger
+        Coordinate[] adjCoordinates = {new Coordinate(1,0), new Coordinate(0,1), new Coordinate(-1,0), new Coordinate(0,-1),
+                                        new Coordinate(1,1), new Coordinate(1,-1), new Coordinate(-1,1), new Coordinate(-1, -1)};
+        for(Coordinate adjCoordinate: adjCoordinates){
+            // Dont have to worry about adjacent coordinates being out of bounds for start because start is never on the very edge
+            maze[start.x() + adjCoordinate.x()][start.y() + adjCoordinate.y()] = Const.START_TILE; 
+            if(end.x() + adjCoordinate.x() >= 0 && end.x() + adjCoordinate.x() < rows && end.y() + adjCoordinate.y() >= 0 && end.y() + adjCoordinate.y() < cols){
+                maze[end.x() + adjCoordinate.x()][end.y() + adjCoordinate.y()] = Const.END_TILE; 
+            }
+        }
         System.out.println("MAZE--------");
         for(int x = 0; x < maze.length; x++){
             String row = "";
