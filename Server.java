@@ -110,7 +110,7 @@ public class Server {
         }
         // Whether the socket is dead
         public boolean isDead() {
-            System.out.println("Server  " + this.socket + " " + this.output + " " + this.input);
+            //System.out.println("Server  " + this.socket + " " + this.output + " " + this.input);
             return this.socket == null || this.output == null || this.input == null;
         }
         public void run() {
@@ -144,8 +144,7 @@ public class Server {
                             if (args[0].equals(Const.LOBBIES_LIST)) { // LOBBIES
                                 this.print(Const.CLEAR_LOBBIES);
                                 for (Lobby lobby: lobbies) {
-                                    System.out.println("lobbyname = " + lobbyName + " " + lobby.locked());
-                                    if(lobby.playerCount() != 4 || lobby.playerCount() != 0 && !(lobby.locked())){
+                                    if((lobby.playerCount() != 4 || lobby.playerCount() != 0) && !(lobby.locked())){
                                         this.print(Const.LOBBY + " " + lobby.name() + " " + lobby.playerCount());
                                     }
                                 }
@@ -164,7 +163,7 @@ public class Server {
                                     while(nameRepeated){
                                         nameRepeated = false;
                                         for (Lobby lobby: lobbies) {
-                                            if(lobby.name().equals(lobbyName)){
+                                            if(lobby.name().equals(lobbyName + "'s")){
                                                 nameRepeated = true;
                                                 lobbyName = args[1] + repeatCounter; 
                                                 repeatCounter++;
@@ -178,6 +177,7 @@ public class Server {
                                     lobbies.add(newLobby);
                                     inLobby = true;
                                     newLobby.addPlayer(clientSocket, this, args[1]); // Even though the lobby name might now have a number that doesn't mean the actual players name should change
+                                    newLobby.start();
                                 }else{
                                     String playerName = args[2];
                                     System.out.println("Lobbyplayername = " + playerName);

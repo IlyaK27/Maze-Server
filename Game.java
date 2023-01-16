@@ -6,21 +6,21 @@ public class Game {
     private int rows;
     private int cols;
     private char[][] maze;
-    private Coordinate start; // x y
-    private Coordinate end; // x y
+    //private Coordinate start; // x y
+    //private Coordinate end; // x y
     private int enemyLevel;
     private int minimumDistance; // Minimum distance end has to be from start (not ths same as Const.MIN_DISTANCE, this min distance increases each round)
-    private ArrayList<EnemyHandler> enemies;
+    //private ArrayList<EnemyHandler> enemies;
     public Game(int maxRows, int maxCols, int enemyLevel, int minimumDistance){
         this.rows = maxRows;
         this.cols = maxCols;
         this.enemyLevel = enemyLevel;
         maze = new char[rows][cols];
-        start = new Coordinate(0,0);
-        end = new Coordinate(0,0);
+        //start = new Coordinate(0,0);
+        //end = new Coordinate(0,0);
     }
 
-    public char[][] constructMaze(){
+    /*public char[][] constructMaze(){
         // Generating start and end
         // Start should not be generated on on edge or corner
         this.start.setX((int)(Math.random() * (this.rows - 2 + 1) + 1)); // x
@@ -45,7 +45,6 @@ public class Game {
         Queue<Coordinate> visitQueue = new LinkedList<Coordinate>();
         Coordinate currentPoint = new Coordinate(this.start.x(), this.start.y());
         while (!(endReached)){
-            System.out.println("Current Distance = " + currentDistance + " Current point = " + currentPoint.x() + " " + currentPoint.y());
             int xDistance = this.end.x() - currentPoint.x(); // Positive - end on the left, Negative - end on the right, 0 - Right above or below end
             int yDistance = this.end.y() - currentPoint.y(); // Positive - end below, Negative - end above, 0 - To the left or right of end
             int directionChoice = (int)(Math.random()); // 0 = horizontal, 1 = vertical
@@ -76,13 +75,11 @@ public class Game {
             }
             if(visitQueue.contains(currentPoint)){System.out.println("contains");}
             visitQueue.add(new Coordinate(currentPoint.x(), currentPoint.y()));
-            System.out.println(visitQueue.size() + "sizeeeee");
             if(currentDistance == 1){endReached = true;}
         }
         Coordinate[] directions = {new Coordinate(1,0), new Coordinate(0,1), new Coordinate(-1,0), new Coordinate(0,-1)};
         while(!(visitQueue.isEmpty())){
             currentPoint = visitQueue.poll();
-            System.out.println("Size = " + (visitQueue.size() + 1) + " " + currentPoint.x() + " " + currentPoint.y());
             maze[currentPoint.x()][currentPoint.y()] = Const.PATH;
             for(Coordinate direction: directions){
                 Coordinate nextPoint = new Coordinate(currentPoint.x() + direction.x(), currentPoint.y() + direction.y());
@@ -121,7 +118,12 @@ public class Game {
         }
         return this.maze;
     }
+    
+    public void spawnPlayers(){
 
+    }
+
+    // Classes
     public class EnemyHandler{
 
     }
@@ -145,5 +147,5 @@ public class Game {
         public void setY(int y){
             this.y = y;
         }
-    }
+    }*/
 }
