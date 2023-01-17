@@ -1,11 +1,9 @@
-import java.awt.Color;
 import java.util.HashMap;
 public class Const {
     public static final int PORT = 5001;
     public static final int LOBBY_SIZE = 4;
     // Map width and height
-    public static final int WIDTH = 1000;
-    public static final int HEIGHT = 1000;
+
 
     public static final int CLIENT_VIEW_RADIUS = 1500;
 
@@ -28,12 +26,6 @@ public class Const {
         return (int)(5 * Math.pow(0.9, (radius - 30))) + 3;
     }
     */
-    public static final int xChange(int angle, int speed) {
-        return (int)(Math.cos(radians(angle)) * speed);
-    }
-    public static final int yChange(int angle, int speed) {
-        return (int)(Math.sin(radians(angle)) * speed);
-    }
 
     // Player colors
 
@@ -53,12 +45,14 @@ public class Const {
     public static final int ENEMY_DIMENSIONS = 120;
     public static final int MAX_ENEMIES = 15;
     public static final int ENEMIES_INCREMENT = 4;
-    public static final int ENEMY_MOVEMENT_SPEED = 7;
+    public static final int ENEMY_MOVEMENT_SPEED = 3;
     public static final int ENEMY_HEALTH = 200;
     public static final int ENEMY_HEALTH_INCREMENT = 50;
     public static final int ENEMY_DAMAGE = 25;
     public static final int ENEMY_DAMAGE_INCREMENT = 50;
     public static final int ENEMY_ATTACKS_SPEED = 750;
+    public static final int ENEMY_RANGE = TILE_DIMENSIONS * 5;
+    public static final int ENEMY_MOVEMENT_BREAK = 45;
     public static final int MAZE_INCREASE = 5; // Difference in dimensions of maze after reach round
 
     // Commands (See shared doc for more info)

@@ -24,6 +24,8 @@ public class Player {
         this.damageReduction = 1;
         this.alive = true;
         this.hitbox = new Rectangle(0, 0, Const.PLAYER_DIMENSIONS, Const.PLAYER_DIMENSIONS);
+        this.invulnerable = false;
+        this.invisible = false;
     }   
     public String name(){
         return this.name;
@@ -137,8 +139,10 @@ public class Player {
         this.health = Math.min(Const.PLAYER_MAX_HEALTH, this.health + healthGained); // Using Math.min so player can't go over 100 health    
     }
     public void damage(int damage){
+        System.out.println("Trying to damage " + invulnerable);
         if(!(invulnerable)){
             this.health = Math.max(0, this.health - damage * damageReduction);
+            System.out.println("damaged " + this.health);
         }
     }
     public void reset(){

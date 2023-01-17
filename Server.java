@@ -179,6 +179,7 @@ public class Server {
                                     newLobby.addPlayer(clientSocket, this, args[1]); // Even though the lobby name might now have a number that doesn't mean the actual players name should change
                                     newLobby.start();
                                 }else{
+                                    System.out.println("join added");
                                     String playerName = args[2];
                                     System.out.println("Lobbyplayername = " + playerName);
                                     for (Lobby lobby: lobbies) {

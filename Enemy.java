@@ -9,7 +9,7 @@ public class Enemy {
     private int damage;
     private Rectangle hitbox;
     private char[][] maze;
-    private Player[] players;
+    private ArrayList<Player> players;
     private AttackThread attacker;
     
     public Enemy(int x, int y, char maze[][], int level){
@@ -22,7 +22,9 @@ public class Enemy {
         this.maze = maze;
         this.attacker = new AttackThread();
     }
-
+    public void startAttacking(){
+        attacker.run();
+    }
     public int getX(){
         return this.x;
     }
@@ -53,20 +55,20 @@ public class Enemy {
         return (int)(Math.sin(radians(this.angle)) * Const.ENEMY_MOVEMENT_SPEED);
     }
     private int calculateAngle(int playerX, int playerY){
-        int angle = (int)(Math.atan((double)(playerY - (double)Const.HEIGHT/2) / (playerX - (double)Const.WIDTH/2)) * (180 / Math.PI));
+        int angle = (int)(Math.atan((double)(this.y - playerY) / (this.x - playerX)) * (180 / Math.PI));
         int raa = Math.abs(angle); // related acute angle
-        if (playerX >= (double)Const.WIDTH/2 && playerY >= (double)Const.HEIGHT/2) return raa;
-        else if (playerX < (double)Const.WIDTH/2 && playerY >= (double)Const.HEIGHT/2) return 180 - raa;
-        else if (playerX < (double)(Const.WIDTH)/2 && playerY < (double)Const.HEIGHT/2) return 180 + raa;
+        if (playerX >= this.x && playerY >= this.y) return raa;
+        else if (playerX < this.x && playerY >= this.y) return 180 - raa;
+        else if (playerX < this.x && playerY < this.y) return 180 + raa;
         else return 360 - raa;
     }
-    public void move(ArrayList<Player> players){
-        this.players = players.toArray(this.players);
+    public boolean move(ArrayList<Player> players){
+        this.players = players;
         Player closestPlayer = null;
         int closestDistance = 0;
         for(Player player: players){
             int playerDistance = (int)Math.sqrt(Math.pow(this.x - player.getX(), 2) + Math.pow(this.y - player.getY(), 2));
-            if((closestPlayer == null || closestDistance > playerDistance) && player.invisible()){
+            if((closestPlayer == null || closestDistance > playerDistance) && !(player.invisible())){
                 closestPlayer = player;
                 closestDistance = playerDistance;
             }
@@ -75,11 +77,13 @@ public class Enemy {
         int tileX = this.x / Const.TILE_DIMENSIONS;
         int tileY = this.y / Const.TILE_DIMENSIONS;
         boolean wallIntersected = false;
-        this.angle = calculateAngle(closestPlayer.getX(), closestPlayer.getY());
-        int x = xChange();
-        int y = yChange();
+        int x = this.x;
+        int y = this.y;
         this.hitbox.setLocation(x, y);
-        if(tileX - 1 >= 0 && tileX + 1 <= maze.length - 1 && tileY - 1 >= 0 && tileY + 1 <= maze.length - 1 && closestPlayer != null){
+        if(tileX - 1 >= 0 && tileX + 1 <= maze.length - 1 && tileY - 1 >= 0 && tileY + 1 <= maze.length - 1 && closestPlayer != null && closestDistance <= Const.ENEMY_RANGE){
+            this.angle = calculateAngle(closestPlayer.getX(), closestPlayer.getY());
+            x = this.x + xChange();
+            y = this.y + yChange();
             for(Integer[] adjacentTile: Const.ADJACENT_SQUARES){
                 int adjRectXTile = tileX + adjacentTile[0];
                 int adjRectYTile = tileY + adjacentTile[1];
@@ -105,6 +109,9 @@ public class Enemy {
                 }   
             }
         }
+        else{
+            return false;
+        }
         this.x = x;
         this.y = y;
         if(!(wallIntersected)){
@@ -126,22 +133,24 @@ public class Enemy {
             }
         }   
         this.hitbox.setLocation(this.x, this.y);
+        return true;
     }
 
     public class AttackThread extends Thread{
-        public AttackThread(){
-            this.run();
-        }
+        public AttackThread(){}
         public void run(){
-            while(health >= 0){
-                for(Player player: players){
-                    if(hitbox.intersects(player.getHitbox())){
-                        player.damage(damage);
+            while(health > 0){
+                if(players != null){
+                    for(Player player: players){
+                        //System.out.println(hitbox.getX() + " " + hitbox.getY() + " " + player.getHitbox().getX() + " " + player.getHitbox().getY());
+                        if(hitbox.intersects(player.getHitbox())){
+                            player.damage(damage);
+                        }
                     }
+                    try {
+                        Thread.sleep(Const.ENEMY_ATTACKS_SPEED);
+                    } catch (Exception e) {}
                 }
-                try {
-                    Thread.sleep(Const.ENEMY_ATTACKS_SPEED);
-                } catch (Exception e) {}
             }
         }
     }

@@ -45,8 +45,6 @@ public class Lobby extends Thread{
                 for(PlayerHandler player: playerHandlers){
                     if(player.drawn){
                         int[] fovDimensions = game.calculateFov(playerHashMap.get(player));
-                        //System.out.println("Calculated fov for -" + playerHashMap.get(player).name() + " " + fovDimensions[0] +  " " + fovDimensions[1] + " " + fovDimensions[2] + " " + fovDimensions[3]) ;
-                        //System.out.println(Const.DRAW_MAP + " " + fovDimensions[0] + " " + fovDimensions[1] + " " + fovDimensions[2] + " " + fovDimensions[3]);
                         player.sHandler.print(Const.DRAW_MAP + " " + fovDimensions[0] + " " + fovDimensions[1] + " " + fovDimensions[2] + " " + fovDimensions[3]);
                         player.drawn = false;
                         for(int y = 0; y < fovDimensions[0]; y++){
@@ -102,6 +100,9 @@ public class Lobby extends Thread{
             playerHandler.sHandler.print(Const.NEW_PLAYER + " " + playerHashMap.get(players).name() + " " + player.color());
             if(players.getAbilities() != null){playerHandler.sHandler.print(Const.ABILITIES + " " + playerHashMap.get(players).name() + " " + players.getAbilities());}
             if(players.ready){playerHandler.sHandler.print(Const.READY + " " + playerHashMap.get(players).name());}
+        }
+        for(Enemy enemy: game.enemyHandler.enemies){
+            playerHandler.sHandler.print(Const.NEWE + " " + enemy.getX() + " " + enemy.getY() + " " + enemy.getHealth());
         }
         if(playerCount == Const.LOBBY_SIZE){locked = true;}
     }
@@ -407,6 +408,10 @@ public class Lobby extends Thread{
                     playerHandlers.sHandler.print(Const.GAME_START + " " + playerHashMap.get(playerHandlers).name());
                 }
                 playing = true;
+                game.enemyHandler.start();
+                for(Enemy enemy: game.enemyHandler.enemies){
+                    enemy.startAttacking();
+                }
             }else if (countdown == null){
                 System.out.println("Countdown stopped");
             }
@@ -426,7 +431,6 @@ public class Lobby extends Thread{
             maze = new char[rows][cols];
             start = new Coordinate(0,0);
             end = new Coordinate(0,0);
-            this.enemyHandler = new EnemyHandler(Const.MAX_ENEMIES + (round - 1) * Const.ENEMIES_INCREMENT);
         }
     
         public char[][] constructMaze(){
@@ -512,7 +516,6 @@ public class Lobby extends Thread{
                 maze[start.y() + adjCoordinate.y()][start.x() + adjCoordinate.x()] = Const.START_TILE; 
                 if(end.x() + adjCoordinate.x() >= 0 && end.x() + adjCoordinate.x() < cols && end.y() + adjCoordinate.y() >= 0 && end.y() + adjCoordinate.y() < rows){
                     maze[end.y() + adjCoordinate.y()][end.x() + adjCoordinate.x()] = Const.END_TILE; 
-                    System.out.println("End - " + (end.x() + adjCoordinate.x()) * Const.TILE_DIMENSIONS + " " + (end.y() + adjCoordinate.y()) * Const.TILE_DIMENSIONS);
                 }
             }
             System.out.println("MAZE--------");
@@ -526,6 +529,7 @@ public class Lobby extends Thread{
                 }   
                 System.out.println(row);
             }
+            this.enemyHandler = new EnemyHandler(Const.MAX_ENEMIES + (round - 1) * Const.ENEMIES_INCREMENT);
             return this.maze;
         }
 
@@ -568,19 +572,24 @@ public class Lobby extends Thread{
                 enemies = new ArrayList<Enemy>();
                 while(enemies.size() < maxEnemies){
                     Enemy newEnemy = addEnemy();
-                    for(PlayerHandler playerHandler: playerHandlers){
-                        playerHandler.sHandler.print(Const.NEWE + " " + newEnemy.getX() + " " + newEnemy.getY() + newEnemy.getHealth());
+                    for(PlayerHandler playerHandler: playerHandlers){ // When lobby is generated this code won't run but this is useful for after a new round is reached
+                        playerHandler.sHandler.print(Const.NEWE + " " + newEnemy.getX() + " " + newEnemy.getY() + " " + newEnemy.getHealth());
                     }
+                    enemies.add(newEnemy);
                 }
             }
             public void run(){
                 while(playing){
+                    //System.out.println("enemy playing");
                     int idCounter = 0;
                     for(Enemy enemy: enemies){
+                        //System.out.println("enemy scanned");
                         if(enemy.getHealth() > 0){
-                            enemy.move(players);
-                            for(PlayerHandler playerHandler: playerHandlers){
-                                playerHandler.sHandler.print(Const.ENEMY + " " + idCounter + " " + enemy.getX() + " " + enemy.getY() + enemy.getAngle() + " " + enemy.getHealth());
+                            boolean enemyMoved = enemy.move(players);
+                            if(enemyMoved){
+                                for(PlayerHandler playerHandler: playerHandlers){
+                                    playerHandler.sHandler.print(Const.ENEMY + " " + idCounter + " " + enemy.getX() + " " + enemy.getY() + " " + enemy.getAngle() + " " + enemy.getHealth());
+                                }
                             }
                         }else{
                             enemies.remove(enemy);
@@ -592,6 +601,9 @@ public class Lobby extends Thread{
                         }
                         idCounter++;
                     }
+                    try{
+                        Thread.sleep(Const.ENEMY_MOVEMENT_BREAK); // Making it so enemies dont move at lightning speed
+                    }catch(Exception e){}
                 }
             }
             private Enemy addEnemy(){
@@ -612,8 +624,10 @@ public class Lobby extends Thread{
                         }
                     }
                 }
-                int enemyX = enemyXSquare * Const.TILE_DIMENSIONS + Const.ENEMY_DIMENSIONS / 2;
-                int enemyY = enemyYSquare * Const.TILE_DIMENSIONS + Const.ENEMY_DIMENSIONS / 2;
+                int enemyX = enemyXSquare * Const.TILE_DIMENSIONS + (Const.TILE_DIMENSIONS - Const.ENEMY_DIMENSIONS)/2;
+                int enemyY = enemyYSquare * Const.TILE_DIMENSIONS + (Const.TILE_DIMENSIONS - Const.ENEMY_DIMENSIONS)/2;
+                //int enemyX = enemyXSquare * Const.TILE_DIMENSIONS;
+                //int enemyY = enemyYSquare * Const.TILE_DIMENSIONS;
                 Enemy enemy = new Enemy(enemyX, enemyY, maze, round);
                 enemies.add(enemy);
                 return enemy;
