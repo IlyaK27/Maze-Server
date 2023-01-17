@@ -49,6 +49,16 @@ public class Const {
     public static final int PATH_CHANCE = 55;
     public static final int TILE_DIMENSIONS = 150;
     public static final int PLAYER_DIMENSIONS = 110;
+    public static final int PLAYER_MAX_HEALTH = 100;
+    public static final int ENEMY_DIMENSIONS = 120;
+    public static final int MAX_ENEMIES = 15;
+    public static final int ENEMIES_INCREMENT = 4;
+    public static final int ENEMY_MOVEMENT_SPEED = 7;
+    public static final int ENEMY_HEALTH = 200;
+    public static final int ENEMY_HEALTH_INCREMENT = 50;
+    public static final int ENEMY_DAMAGE = 25;
+    public static final int ENEMY_DAMAGE_INCREMENT = 50;
+    public static final int ENEMY_ATTACKS_SPEED = 750;
     public static final int MAZE_INCREASE = 5; // Difference in dimensions of maze after reach round
 
     // Commands (See shared doc for more info)
@@ -116,10 +126,11 @@ public class Const {
         }
     };
     
-    private static final Integer[][] UP_TILES = {{-1, -1}, {0, -1}, {1, -1}};
-    private static final Integer[][] RIGHT_TILES = {{1, 1}, {1, 0}, {1, -1}};
-    private static final Integer[][] DOWN_TILES = {{-1, 1}, {0, 1}, {1, 1}};
-    private static final Integer[][] LEFT_TILES = {{-1, 1}, {-1, 0}, {-1, -1}};
+    public static final Integer[][] ADJACENT_SQUARES = {{-1, 1}, {0, 1}, {1, 1} , {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}};
+    private static final Integer[][] UP_TILES = {ADJACENT_SQUARES[6], ADJACENT_SQUARES[5], ADJACENT_SQUARES[4]};
+    private static final Integer[][] RIGHT_TILES = {ADJACENT_SQUARES[2], ADJACENT_SQUARES[3], ADJACENT_SQUARES[4]};
+    private static final Integer[][] DOWN_TILES = {ADJACENT_SQUARES[0], ADJACENT_SQUARES[1], ADJACENT_SQUARES[2]};
+    private static final Integer[][] LEFT_TILES = {ADJACENT_SQUARES[0], ADJACENT_SQUARES[7], ADJACENT_SQUARES[6]};
     public static final HashMap<Integer, Integer[][]> ADJACENT_TILES = new HashMap<Integer, Integer[][]>(){
         {
             put(0, UP_TILES); 

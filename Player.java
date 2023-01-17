@@ -12,12 +12,14 @@ public class Player {
     private int damageReduction;
     private boolean onEnd; // This boolean is true if the player is currently standing on an end square
     private boolean alive;
+    private boolean invisible; // Enemys won't detect this player while this is true
+    private boolean invulnerable; // Enemies won't be able to do damage to the player while this is true
 
     public Player(String playerName, String color){
         this.name = playerName;
         this.color = color;
         this.direction = 0;
-        this.health = 100;
+        this.health = Const.PLAYER_MAX_HEALTH;
         this.speed = 1;
         this.damageReduction = 1;
         this.alive = true;
@@ -47,6 +49,9 @@ public class Player {
     public boolean alive(){
         return this.alive;
     }
+    public boolean invisible(){
+        return this.invisible;
+    }
     public Rectangle getHitbox(){
         return this.hitbox;
     }
@@ -64,11 +69,11 @@ public class Player {
         int x = this.x + Const.PLAYER_DIRECTIONS.get(direction)[0] * this.speed;
         int y = this.y + Const.PLAYER_DIRECTIONS.get(direction)[1] * this.speed;
         this.hitbox.setLocation(x, y);
-        if(direction == 1 || direction == 3 && (tileX - 1 >= 0 && tileX + 1 <= 19)){
+        if(direction == 1 || direction == 3 && (tileX - 1 >= 0 && tileX + 1 <= maze.length - 1)){
             for(Integer[] adjacentTile: tilesInfront){
                 int adjRectXTile = tileX + adjacentTile[0];
                 int adjRectYTile = tileY + adjacentTile[1];
-                if(adjRectXTile >= 0 && adjRectXTile <= 19 && adjRectYTile >= 0 && adjRectYTile <= 19){
+                if(adjRectXTile >= 0 && adjRectXTile <= maze.length - 1 && adjRectYTile >= 0 && adjRectYTile <= maze.length - 1){
                     Rectangle adjRect = new Rectangle(adjRectXTile * Const.TILE_DIMENSIONS, adjRectYTile * Const.TILE_DIMENSIONS, Const.TILE_DIMENSIONS, Const.TILE_DIMENSIONS);
                     if(adjRect.intersects(this.hitbox) && maze[adjRectYTile][adjRectXTile] == Const.WALL){
                         wallIntersected = true;
@@ -83,11 +88,11 @@ public class Player {
                 }   
             }
 
-        }else if(direction == 0 || direction == 2 && (tileY - 1 >= 0 && tileY + 1 <= 19)){
+        }else if(direction == 0 || direction == 2 && (tileY - 1 >= 0 && tileY + 1 <= maze.length - 1)){
             for(Integer[] adjacentTile: tilesInfront){
                 int adjRectXTile = tileX + adjacentTile[0];
                 int adjRectYTile = tileY + adjacentTile[1];
-                if(adjRectXTile >= 0 && adjRectXTile <= 19 && adjRectYTile >= 0 && adjRectYTile <= 19){
+                if(adjRectXTile >= 0 && adjRectXTile <= maze.length - 1 && adjRectYTile >= 0 && adjRectYTile <= maze.length - 1){
                     Rectangle adjRect = new Rectangle(adjRectXTile * Const.TILE_DIMENSIONS, adjRectYTile * Const.TILE_DIMENSIONS, Const.TILE_DIMENSIONS, Const.TILE_DIMENSIONS);
                     if(adjRect.intersects(this.hitbox) && maze[adjRectYTile][adjRectXTile] == Const.WALL){
                         wallIntersected = true;
@@ -127,6 +132,14 @@ public class Player {
         this.x = centerX - 55;
         this.y = centerY - 55;
         this.hitbox.setLocation(this.x, this.y);
+    }
+    public void heal(int healthGained){
+        this.health = Math.min(Const.PLAYER_MAX_HEALTH, this.health + healthGained); // Using Math.min so player can't go over 100 health    
+    }
+    public void damage(int damage){
+        if(!(invulnerable)){
+            this.health = Math.max(0, this.health - damage * damageReduction);
+        }
     }
     public void reset(){
         direction = 0;

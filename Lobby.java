@@ -1,6 +1,7 @@
 import java.net.*;
 import java.util.*;
 import java.io.*;
+import java.awt.Rectangle;
 
 public class Lobby extends Thread{
     private String name;
@@ -31,7 +32,7 @@ public class Lobby extends Thread{
         colors.add("ORANGE");
         this.round = 1;
         this.playing = false;
-        this.game = new Game(Const.STARTING_ROWS, Const.STARTING_COLS, this.round, Const.MIN_DISTANCE);
+        this.game = new Game(Const.STARTING_ROWS, Const.STARTING_COLS, Const.MIN_DISTANCE);
         this.maze = game.constructMaze();
         this.locked = false;
     }
@@ -122,7 +123,8 @@ public class Lobby extends Thread{
                 playerHandler.sHandler.print(Const.WIN);
             }
             round++;
-            this.game = new Game(Const.STARTING_ROWS + (round * Const.MAZE_INCREASE), Const.STARTING_COLS + (round * Const.MAZE_INCREASE), this.round, Const.MIN_DISTANCE + (round * 2));
+            this.maze = new char[Const.STARTING_ROWS + (round * Const.MAZE_INCREASE)][Const.STARTING_COLS + (round * Const.MAZE_INCREASE)];
+            this.game = new Game(Const.STARTING_ROWS + (round * Const.MAZE_INCREASE), Const.STARTING_COLS + (round * Const.MAZE_INCREASE), Const.MIN_DISTANCE + (round * 2));
             this.maze = this.game.constructMaze();
         }else{
             for(PlayerHandler playerHandler: playerHandlers){
@@ -416,16 +418,15 @@ public class Lobby extends Thread{
         private char[][] maze;
         private Coordinate start; // x y
         private Coordinate end; // x y
-        private int enemyLevel;
         private int minimumDistance; // Minimum distance end has to be from start (not ths same as Const.MIN_DISTANCE, this min distance increases each round)
         private EnemyHandler enemyHandler;
-        public Game(int maxRows, int maxCols, int enemyLevel, int minimumDistance){
+        public Game(int maxRows, int maxCols, int minimumDistance){
             this.rows = maxRows;
             this.cols = maxCols;
-            this.enemyLevel = enemyLevel;
             maze = new char[rows][cols];
             start = new Coordinate(0,0);
             end = new Coordinate(0,0);
+            this.enemyHandler = new EnemyHandler(Const.MAX_ENEMIES + (round - 1) * Const.ENEMIES_INCREMENT);
         }
     
         public char[][] constructMaze(){
@@ -559,10 +560,66 @@ public class Lobby extends Thread{
         }
     
         // Classes
-        public class EnemyHandler{
-    
+        public class EnemyHandler extends Thread{
+            private int maxEnemies;
+            private ArrayList<Enemy> enemies;
+            public EnemyHandler(int maxEnemies){
+                this.maxEnemies = maxEnemies;
+                enemies = new ArrayList<Enemy>();
+                while(enemies.size() < maxEnemies){
+                    Enemy newEnemy = addEnemy();
+                    for(PlayerHandler playerHandler: playerHandlers){
+                        playerHandler.sHandler.print(Const.NEWE + " " + newEnemy.getX() + " " + newEnemy.getY() + newEnemy.getHealth());
+                    }
+                }
+            }
+            public void run(){
+                while(playing){
+                    int idCounter = 0;
+                    for(Enemy enemy: enemies){
+                        if(enemy.getHealth() > 0){
+                            enemy.move(players);
+                            for(PlayerHandler playerHandler: playerHandlers){
+                                playerHandler.sHandler.print(Const.ENEMY + " " + idCounter + " " + enemy.getX() + " " + enemy.getY() + enemy.getAngle() + " " + enemy.getHealth());
+                            }
+                        }else{
+                            enemies.remove(enemy);
+                            Enemy newEnemy = addEnemy();
+                            for(PlayerHandler playerHandler: playerHandlers){
+                                playerHandler.sHandler.print(Const.KILLEDE + " " + idCounter);
+                                playerHandler.sHandler.print(Const.NEWE + " " + newEnemy.getX() + " " + newEnemy.getY() + newEnemy.getHealth());
+                            }
+                        }
+                        idCounter++;
+                    }
+                }
+            }
+            private Enemy addEnemy(){
+                boolean cantSpawn = true;
+                int enemyXSquare = 0;
+                int enemyYSquare = 0;
+                while(cantSpawn){
+                    enemyXSquare = (int)(Math.random() * (maze.length - 1));
+                    enemyYSquare = (int)(Math.random() * (maze.length - 1));
+                    if(maze[enemyYSquare][enemyXSquare] == Const.PATH){
+                        cantSpawn = false;
+                        Rectangle tile = new Rectangle(enemyXSquare * Const.TILE_DIMENSIONS, enemyYSquare * Const.TILE_DIMENSIONS, Const.TILE_DIMENSIONS, Const.TILE_DIMENSIONS);
+                        for(Player player: players){
+                            if(tile.intersects(player.getHitbox())){ // Enemy cant spawn in a tile that a player is in
+                                cantSpawn = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                int enemyX = enemyXSquare * Const.TILE_DIMENSIONS + Const.ENEMY_DIMENSIONS / 2;
+                int enemyY = enemyYSquare * Const.TILE_DIMENSIONS + Const.ENEMY_DIMENSIONS / 2;
+                Enemy enemy = new Enemy(enemyX, enemyY, maze, round);
+                enemies.add(enemy);
+                return enemy;
+            }
         }
-    
+
         private class Coordinate{
             private int x;
             private int y;
