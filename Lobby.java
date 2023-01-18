@@ -41,25 +41,35 @@ public class Lobby extends Thread{
         while(hasPlayers){
             System.out.print("");
             while(playing){
+                try{
+                    Thread.sleep(10); 
+                }catch(Exception e){}
                 boolean levelBeaten = true;
-                for(PlayerHandler player: playerHandlers){
-                    if(player.drawn){
-                        int[] fovDimensions = game.calculateFov(playerHashMap.get(player));
-                        player.sHandler.print(Const.DRAW_MAP + " " + fovDimensions[0] + " " + fovDimensions[1] + " " + fovDimensions[2] + " " + fovDimensions[3]);
-                        player.drawn = false;
+                for(PlayerHandler playerHandler: playerHandlers){
+                    if(playerHandler.drawn){
+                        int[] fovDimensions = game.calculateFov(playerHashMap.get(playerHandler));
+                        playerHandler.sHandler.print(Const.DRAW_MAP + " " + fovDimensions[0] + " " + fovDimensions[1] + " " + fovDimensions[2] + " " + fovDimensions[3]);
+                        playerHandler.drawn = false;
                         for(int y = 0; y < fovDimensions[0]; y++){
                             String rowMessage = Const.UPDATE_MAP + " " + y;
                             for(int x = 0; x < fovDimensions[1]; x++){
                                 rowMessage  = rowMessage + " " + maze[y + fovDimensions[3]][x + fovDimensions[2]];
-                                //System.out.print("coords-" + x + " " + y);
                             }
                             //System.out.print(" Row-" + rowMessage);
-                            player.sHandler.print(rowMessage);
+                            playerHandler.sHandler.print(rowMessage);
                         }
                     }
-                    if(!(playerHashMap.get(player).onEnd()) || !(playerHashMap.get(player).alive())){levelBeaten = false;}
+                    Player currentPlayer = playerHashMap.get(playerHandler);
+                    if(currentPlayer.getHealth() == 0 && !(currentPlayer.downed())){
+                        currentPlayer.setDown(true);
+                        for(PlayerHandler handlers: playerHandlers){
+                            handlers.sHandler.print(Const.DOWNED + " " + currentPlayer.name());
+                        }
+                        Bleeder bleeder = new Bleeder(playerHandler);
+                    }
+                    if(!(currentPlayer.onEnd()) && currentPlayer.alive()){levelBeaten = false;}
                 }
-                if(levelBeaten){endGame(true);}
+                if(levelBeaten && playing){endGame(true);}
             }
         }
     }
@@ -118,6 +128,7 @@ public class Lobby extends Thread{
     }
     private void endGame(boolean won){
         // Reseting players
+        playing = false;
         if(won){
             for(PlayerHandler playerHandler: playerHandlers){
                 playerHashMap.get(playerHandler).reset();
@@ -129,10 +140,12 @@ public class Lobby extends Thread{
             this.maze = this.game.constructMaze();
         }else{
             for(PlayerHandler playerHandler: playerHandlers){
-                playerHandler.sHandler.print(Const.LOSE);
+                playerHandler.sHandler.print(Const.LOSE + " " + round);
+            }
+            for(PlayerHandler playerHandler: playerHandlers){ // Removing all players after everyone got the message that they lost
+                playerHandler.removePlayer(true);
             }
         }
-        playing = false;
     }
 
     //----------------------------------------------------------------
@@ -279,14 +292,16 @@ public class Lobby extends Thread{
                                }
                             }
                             else if (args[0].equals(Const.MOVE)) { // LEAVE    
-                                int direction = Integer.parseInt(args[1]);
-                                playerHashMap.get(this).move(direction, maze);
-                                Player player = playerHashMap.get(this);
-                                for(PlayerHandler playerHandler: playerHandlers){
-                                    playerHandler.sHandler.print(Const.PLAYER + " " + player.name() + " " + player.getX() + " " + player.getY() + " " + player.getDirection() + " " + player.getHealth());
+                                if(!(playerHashMap.get(this).downed()) && playerHashMap.get(this).alive()){
+                                    int direction = Integer.parseInt(args[1]);
+                                    playerHashMap.get(this).move(direction, maze);
+                                    Player player = playerHashMap.get(this);
+                                    for(PlayerHandler playerHandler: playerHandlers){
+                                        playerHandler.sHandler.print(Const.PLAYER + " " + player.name() + " " + player.getX() + " " + player.getY() + " " + player.getDirection() + " " + player.getHealth());
+                                    }
+                                    if(maze[(player.getY() + Const.PLAYER_DIMENSIONS / 2) / Const.TILE_DIMENSIONS][(player.getX() + Const.PLAYER_DIMENSIONS / 2)  / Const.TILE_DIMENSIONS] == Const.END_TILE){player.setOnEnd(true);}
+                                    else {player.setOnEnd(false);}
                                 }
-                                if(maze[(player.getY() + Const.PLAYER_DIMENSIONS / 2) / Const.TILE_DIMENSIONS][(player.getX() + Const.PLAYER_DIMENSIONS / 2)  / Const.TILE_DIMENSIONS] == Const.END_TILE){player.setOnEnd(true);}
-                                else {player.setOnEnd(false);}
                             }
                             else if (args[0].equals(Const.LEAVE)) { // LEAVE    
                                 System.out.println("Lobbyleave");
@@ -414,6 +429,85 @@ public class Lobby extends Thread{
                 }
             }else if (countdown == null){
                 System.out.println("Countdown stopped");
+            }
+        }
+    }
+    class Bleeder extends Thread { // This thread gets made when the player is downed and is dying
+        private PlayerHandler player;
+        private PlayerReviver reviver;
+        Bleeder(PlayerHandler player) {
+            this.player = player;
+            this.start();
+        }
+        public void run() {
+            int counter = 0;
+            while(Const.BLEEDING_OUT_TIME / 10 != counter && playerHashMap.get(player).getHealth() != Const.PLAYER_MAX_HEALTH){
+                try {
+                    Thread.sleep(10);
+                } catch (Exception e) {
+                    // TODO: handle exception
+                }
+                for(Player currentPlayer: players){
+                    if(currentPlayer.getHitbox().intersects(playerHashMap.get(player).getHitbox()) && !(currentPlayer.name().equals(playerHashMap.get(player).name())) && reviver == null){
+                        reviver = new PlayerReviver(player, this);  
+                    }
+                }
+                if(reviver == null){ // If player isn't being revived add to the timer
+                    System.out.println("bleeding" + counter);
+                    counter++;
+                }
+            }
+            Player currentPlayer = playerHashMap.get(player);
+            if(currentPlayer.getHealth() != Const.PLAYER_MAX_HEALTH && currentPlayer.downed()){
+                currentPlayer.die();
+                System.out.println("Player died");
+                boolean allPlayersDead = true;
+                for(PlayerHandler playerHandler: playerHandlers){
+                    playerHandler.sHandler.print(Const.DIED + " " + currentPlayer.name());
+                    if(playerHashMap.get(playerHandler).alive()){
+                        allPlayersDead = false;
+                    }
+                }
+                player.sHandler.print(Const.DIE);
+                if(allPlayersDead){ // Ending the game
+                    endGame(false);
+                }
+            }
+        }
+    }
+    class PlayerReviver extends Thread { // This thread gets made when the player is downed and is dying
+        private PlayerHandler player;
+        private Bleeder bleeder;
+        PlayerReviver(PlayerHandler player, Bleeder bleeder) {
+            this.player = player;
+            this.bleeder = bleeder;
+            this.start();
+        }
+        public void run() {
+            boolean reviving = true;
+            Player currentPlayer = playerHashMap.get(player);
+            do {
+                reviving = false;
+                try {
+                    Thread.sleep(Const.REVIVE_INTERVAL);
+                } catch (Exception e) {}
+                currentPlayer.heal(Const.PLAYER_MAX_HEALTH / 10);
+                for(PlayerHandler playerHandler: playerHandlers){ // Checking if there is someone still reviving the player
+                    playerHandler.sHandler.print(Const.PLAYER + " " + currentPlayer.name() + " " + currentPlayer.getX() + " " + currentPlayer.getY() + " " + currentPlayer.getDirection() + " " + currentPlayer.getHealth());
+                    if(playerHashMap.get(player).getHitbox().intersects(playerHashMap.get(playerHandler).getHitbox()) && 
+                        !(playerHashMap.get(playerHandler).name().equals(playerHashMap.get(player).name()) && playerHashMap.get(playerHandler).alive() && !(playerHashMap.get(playerHandler).downed()))){
+                        reviving = true;
+                    }
+                }
+            }
+            while(reviving);
+            if(currentPlayer.getHealth() == Const.PLAYER_MAX_HEALTH){
+                for(PlayerHandler playerHandler: playerHandlers){ // Checking if there is someone still reviving the player
+                    playerHandler.sHandler.print(Const.REVIVED + " " + currentPlayer.name());
+                }
+                currentPlayer.setDown(false);
+            }else{
+                bleeder.reviver = null;
             }
         }
     }
@@ -575,8 +669,8 @@ public class Lobby extends Thread{
                     for(PlayerHandler playerHandler: playerHandlers){ // When lobby is generated this code won't run but this is useful for after a new round is reached
                         playerHandler.sHandler.print(Const.NEWE + " " + newEnemy.getX() + " " + newEnemy.getY() + " " + newEnemy.getHealth());
                     }
-                    enemies.add(newEnemy);
                 }
+                System.out.println(enemies.size());
             }
             public void run(){
                 while(playing){

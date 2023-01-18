@@ -43,7 +43,7 @@ public class Const {
     public static final int PLAYER_DIMENSIONS = 110;
     public static final int PLAYER_MAX_HEALTH = 100;
     public static final int ENEMY_DIMENSIONS = 120;
-    public static final int MAX_ENEMIES = 15;
+    public static final int MAX_ENEMIES = 1;
     public static final int ENEMIES_INCREMENT = 4;
     public static final int ENEMY_MOVEMENT_SPEED = 3;
     public static final int ENEMY_HEALTH = 200;
@@ -54,6 +54,8 @@ public class Const {
     public static final int ENEMY_RANGE = TILE_DIMENSIONS * 5;
     public static final int ENEMY_MOVEMENT_BREAK = 45;
     public static final int MAZE_INCREASE = 5; // Difference in dimensions of maze after reach round
+    public static final int BLEEDING_OUT_TIME = 10000; // 10 seconds
+    public static final int REVIVE_INTERVAL = 300;
 
     // Commands (See shared doc for more info)
     public static final String PING = "PING"; // Making sure client is still connected
@@ -93,6 +95,9 @@ public class Const {
     public static final String REMOVEP = "REMOVEP"; // Player has left lobby, remove them from the player list
     public static final String NEWE = "NEWE"; // New enemy has spawned 
     public static final String PLAYER = "PLAYER"; // Updates the correspondings players information for the client
+    public static final String DOWNED = "DOWNED"; // Tells the client the specified player has been put into the downed state
+    public static final String REVIVED = "REVIVED"; // Tells the client the specified player has been revived
+    public static final String DIED = "DIED"; // Tells the client the specified player has died
     public static final String ENEMY = "ENEMY"; // Updates the correspondings enemies information for the client
     public static final String KILLEDE = "KILLEDE"; // Tells the client this enemy has died and to remove it from the enemy list 
     public static final String DIE = "DIE"; // Client has died

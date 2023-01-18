@@ -70,23 +70,22 @@ public class Enemy {
         int closestDistance = 0;
         for(Player player: players){
             int playerDistance = (int)Math.sqrt(Math.pow(this.x - player.getX(), 2) + Math.pow(this.y - player.getY(), 2));
-            if((closestPlayer == null || closestDistance > playerDistance) && !(player.invisible())){
+            if(player.alive() && !(player.downed()) && !(player.invisible()) && (closestPlayer == null || closestDistance > playerDistance)){
                 closestPlayer = player;
                 closestDistance = playerDistance;
             }
         }
         int maxBounds = maze.length * Const.TILE_DIMENSIONS;
-        int tileX = this.x / Const.TILE_DIMENSIONS;
-        int tileY = this.y / Const.TILE_DIMENSIONS;
-        boolean wallIntersected = false;
+        int tileX = (this.x + Const.ENEMY_DIMENSIONS / 2) / Const.TILE_DIMENSIONS;
+        int tileY = (this.y + Const.ENEMY_DIMENSIONS / 2) / Const.TILE_DIMENSIONS;
         int x = this.x;
         int y = this.y;
-        this.hitbox.setLocation(x, y);
         if(tileX - 1 >= 0 && tileX + 1 <= maze.length - 1 && tileY - 1 >= 0 && tileY + 1 <= maze.length - 1 && closestPlayer != null && closestDistance <= Const.ENEMY_RANGE){
             //System.out.println("enemymove");
             this.angle = calculateAngle(closestPlayer.getX(), closestPlayer.getY());
             x = this.x + xChange();
             y = this.y + yChange();
+            this.hitbox.setLocation(x, y);
             Queue<Rectangle> collidedTiles = new LinkedList<Rectangle>();
             for(Integer[] adjacentTile: Const.ADJACENT_SQUARES){
                 int adjRectXTile = tileX + adjacentTile[0];
@@ -94,8 +93,8 @@ public class Enemy {
                 if(adjRectXTile >= 0 && adjRectXTile <= maze.length - 1 && adjRectYTile >= 0 && adjRectYTile <= maze.length - 1){
                     Rectangle adjRect = new Rectangle(adjRectXTile * Const.TILE_DIMENSIONS, adjRectYTile * Const.TILE_DIMENSIONS, Const.TILE_DIMENSIONS, Const.TILE_DIMENSIONS);
                     if(adjRect.intersects(this.hitbox) && maze[adjRectYTile][adjRectXTile] == Const.WALL){
-                        wallIntersected = true;
                         collidedTiles.add(adjRect);
+                        //System.out.println("tiles " + tileX + " " + tileY + " " + adjRectXTile + " " + adjRectYTile);
                         // The following if statements use two points that check if the enemy is Intersecting the wall horizontally or vertically
                         // Point xPoint = {x, (int)adjRect.getY()};
                         // Point yPoint = {(int)adjRect.getX(), y};
@@ -135,22 +134,25 @@ public class Enemy {
             }
             while(!(collidedTiles.isEmpty())){
                 Rectangle adjRect = collidedTiles.poll();
-                if(xChange() < 0 && ((int)adjRect.getX() + Const.TILE_DIMENSIONS) - this.x > xChange() && (y >= (int)adjRect.getY() && y <= (int)adjRect.getY() + Const.TILE_DIMENSIONS)){ // If hit wall to the left
+                // These variables are to make sure the right collision spot is checked
+                int xDistance = (int)Math.abs(adjRect.getCenterX() - hitbox.getCenterX());
+                int yDistance = (int)Math.abs(adjRect.getCenterY() - hitbox.getCenterY());
+                if(xChange() < 0 && xDistance >= yDistance && ((int)adjRect.getX() + Const.TILE_DIMENSIONS) > x && (y >= (int)adjRect.getY() && y <= (int)adjRect.getY() + Const.TILE_DIMENSIONS)){ // If hit wall to the left
                 //if(x >= (int)adjRect.getX() && x <= (int)(adjRect.getX() + Const.TILE_DIMENSIONS)){ // If hit wall to the left
                     x = (int)(adjRect.getX() + Const.TILE_DIMENSIONS);
-                    //System.out.println("left");
+                    System.out.println("left");
                 }
-                else if(xChange() > 0 && ((int)adjRect.getX()) - this.x + Const.ENEMY_DIMENSIONS < xChange() && (y >= (int)adjRect.getY() && y <= (int)adjRect.getY() + Const.TILE_DIMENSIONS)){ // If hit wall to the right
+                else if(xChange() > 0 && xDistance >= yDistance && ((int)adjRect.getX()) < x + Const.ENEMY_DIMENSIONS  && (y >= (int)adjRect.getY() && y <= (int)adjRect.getY() + Const.TILE_DIMENSIONS)){ // If hit wall to the right
                     x = (int)(adjRect.getX() - Const.ENEMY_DIMENSIONS);
-                    //System.out.println("right");
+                    System.out.println("right");
                 }
-                if(yChange() < 0 && ((int)adjRect.getY() + Const.TILE_DIMENSIONS) - this.y > yChange() && (x >= (int)adjRect.getX() && x <= (int)adjRect.getX() + Const.TILE_DIMENSIONS)){ // If hit wall above
+                if(yChange() < 0 && yDistance >= xDistance && ((int)adjRect.getY() + Const.TILE_DIMENSIONS) > y && (x >= (int)adjRect.getX() && x <= (int)adjRect.getX() + Const.TILE_DIMENSIONS)){ // If hit wall above
                     y = (int)(adjRect.getY() + Const.TILE_DIMENSIONS);
-                    //System.out.println("up");
+                    System.out.println("up");
                 }
-                else if(yChange() > 0 && ((int)adjRect.getY()) - this.y + Const.ENEMY_DIMENSIONS < yChange() && (x >= (int)adjRect.getX() && x <= (int)adjRect.getX() + Const.TILE_DIMENSIONS)){ // If hit wall below
+                else if(yChange() > 0 && yDistance >= xDistance && ((int)adjRect.getY()) < y + Const.ENEMY_DIMENSIONS && (x >= (int)adjRect.getX() && x <= (int)adjRect.getX() + Const.TILE_DIMENSIONS)){ // If hit wall below
                     y = (int)(adjRect.getY() - Const.ENEMY_DIMENSIONS);
-                    //System.out.println("down");
+                    System.out.println("down");
                 }
                 /*if(adjRect.contains(x, (int)adjRect.getY())){ // If hit wall to the left
                     x = (int)(adjRect.getX() + Const.TILE_DIMENSIONS);
@@ -171,24 +173,6 @@ public class Enemy {
         }
         this.x = x;
         this.y = y;
-        if(!(wallIntersected)){
-            // Making sure player doesn't go out of map
-            if(this.x <= 100){ // if player is close to left edge
-                this.x = Math.max(0, x);
-            }else if(this.x >= maxBounds - 100 - Const.PLAYER_DIMENSIONS){ // If close to right edge
-                this.x = Math.min(maxBounds - Const.PLAYER_DIMENSIONS, x);
-            }else{
-                this.x = x;
-            }
-
-            if(this.y <= 100){ // if player is close to top edge
-                this.y = Math.max(0, y);
-            }else if(this.y >= maxBounds - 100 - Const.PLAYER_DIMENSIONS){ // If close to bottom edge
-                this.y = Math.min(maxBounds - Const.PLAYER_DIMENSIONS, y);
-            }else{
-                this.y = y;
-            }
-        }   
         this.hitbox.setLocation(this.x, this.y);
         return true;
     }

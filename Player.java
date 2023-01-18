@@ -12,6 +12,7 @@ public class Player {
     private int damageReduction;
     private boolean onEnd; // This boolean is true if the player is currently standing on an end square
     private boolean alive;
+    private boolean downed; // Player is not dead yet but will die if not revived
     private boolean invisible; // Enemys won't detect this player while this is true
     private boolean invulnerable; // Enemies won't be able to do damage to the player while this is true
 
@@ -23,6 +24,7 @@ public class Player {
         this.speed = 1;
         this.damageReduction = 1;
         this.alive = true;
+        this.downed = false;
         this.hitbox = new Rectangle(0, 0, Const.PLAYER_DIMENSIONS, Const.PLAYER_DIMENSIONS);
         this.invulnerable = false;
         this.invisible = false;
@@ -51,6 +53,12 @@ public class Player {
     public boolean alive(){
         return this.alive;
     }
+    public boolean downed(){
+        return this.downed;
+    }
+    public void setDown(boolean down){
+        this.downed = true;
+    }
     public boolean invisible(){
         return this.invisible;
     }
@@ -58,8 +66,10 @@ public class Player {
         return this.hitbox;
     }
     public void setOnEnd(boolean onEnd){
-        if(onEnd){System.out.println("OnEnd");}
         this.onEnd = onEnd;
+    }
+    public void die(){
+        this.alive = false;
     }
     public void move(int direction, char[][] maze){
         this.direction = direction;
@@ -139,8 +149,8 @@ public class Player {
         this.health = Math.min(Const.PLAYER_MAX_HEALTH, this.health + healthGained); // Using Math.min so player can't go over 100 health    
     }
     public void damage(int damage){
-        System.out.println("Trying to damage " + invulnerable);
-        if(!(invulnerable)){
+        System.out.println("Trying to damage " + invulnerable + " " + downed);
+        if(!(invulnerable) && this.downed == false){ // Can't damage while downed or invulnerable
             this.health = Math.max(0, this.health - damage * damageReduction);
             System.out.println("damaged " + this.health);
         }
@@ -151,5 +161,7 @@ public class Player {
         speed = 1;
         damageReduction = 1;
         onEnd = false;
+        alive = true;
+        downed = false;
     }
 }
