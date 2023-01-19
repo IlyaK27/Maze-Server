@@ -42,6 +42,7 @@ public class Const {
     public static final int TILE_DIMENSIONS = 150;
     public static final int PLAYER_DIMENSIONS = 110;
     public static final int PLAYER_MAX_HEALTH = 100;
+    public static final int PLAYER_ATTACK_SPEED = 500; // Can attack twice per second
     public static final int ENEMY_DIMENSIONS = 120;
     public static final int MAX_ENEMIES = 1;
     public static final int ENEMIES_INCREMENT = 4;
@@ -124,12 +125,12 @@ public class Const {
             put(3, MOVE_LEFT);
         }
     };
-    
-    public static final Integer[][] ADJACENT_SQUARES = {{-1, 1}, {0, 1}, {1, 1} , {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}};
-    private static final Integer[][] UP_TILES = {ADJACENT_SQUARES[6], ADJACENT_SQUARES[5], ADJACENT_SQUARES[4]};
+    public static final Integer[][] ADJACENT_SQUARES = {{-1, -1}, {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}};
+    //public static final Integer[][] ADJACENT_SQUARES = {{-1, 1}, {0, 1}, {1, 1} , {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}};
+    private static final Integer[][] UP_TILES = {ADJACENT_SQUARES[0], ADJACENT_SQUARES[1], ADJACENT_SQUARES[2]};
     private static final Integer[][] RIGHT_TILES = {ADJACENT_SQUARES[2], ADJACENT_SQUARES[3], ADJACENT_SQUARES[4]};
-    private static final Integer[][] DOWN_TILES = {ADJACENT_SQUARES[0], ADJACENT_SQUARES[1], ADJACENT_SQUARES[2]};
-    private static final Integer[][] LEFT_TILES = {ADJACENT_SQUARES[0], ADJACENT_SQUARES[7], ADJACENT_SQUARES[6]};
+    private static final Integer[][] DOWN_TILES = {ADJACENT_SQUARES[4], ADJACENT_SQUARES[5], ADJACENT_SQUARES[6]};
+    private static final Integer[][] LEFT_TILES = {ADJACENT_SQUARES[6], ADJACENT_SQUARES[7], ADJACENT_SQUARES[0]};
     public static final HashMap<Integer, Integer[][]> ADJACENT_TILES = new HashMap<Integer, Integer[][]>(){
         {
             put(0, UP_TILES); 

@@ -310,6 +310,11 @@ public class Lobby extends Thread{
                             else if (args[0].equals(Const.DRAWN)) { // LEAVE    
                                 this.drawn = true;
                             }
+                            else if (args[0].equals(Const.ATTACK)) { // LEAVE    
+                                if(playerHashMap.get(this).attackReady() && !(playerHashMap.get(this).downed()) && playerHashMap.get(this).alive()){
+                                    
+                                }
+                            }
                         } catch (Exception e) {
                             this.sHandler.print("LOBBY ERROR invalid arguments");
                             e.printStackTrace();

@@ -1,4 +1,5 @@
 import java.awt.Rectangle;
+import java.util.ArrayList;
 
 public class Player {
     private String name;
@@ -15,6 +16,8 @@ public class Player {
     private boolean downed; // Player is not dead yet but will die if not revived
     private boolean invisible; // Enemys won't detect this player while this is true
     private boolean invulnerable; // Enemies won't be able to do damage to the player while this is true
+    private boolean attackReady;
+    private AttackThread attacker;
 
     public Player(String playerName, String color){
         this.name = playerName;
@@ -28,6 +31,8 @@ public class Player {
         this.hitbox = new Rectangle(0, 0, Const.PLAYER_DIMENSIONS, Const.PLAYER_DIMENSIONS);
         this.invulnerable = false;
         this.invisible = false;
+        this.attackReady = true;
+        this.attacker = new AttackThread();
     }   
     public String name(){
         return this.name;
@@ -58,6 +63,20 @@ public class Player {
     }
     public void setDown(boolean down){
         this.downed = true;
+    }
+    public void attack(ArrayList<Enemy> enemies){
+        int directionEven = this.direction % 2; // If this is 0 the player is facing up or down, if its 1 its odd and they are facing left or right
+        if(directionEven == 0){
+
+        }
+        Rectangle attackHitbox = new Rectangle(this.x + (Const.PLAYER_DIMENSIONS));
+        for(Enemy enemy: enemies){
+
+        }
+        this.attackReady = false;
+    }
+    public boolean attackReady(){
+        return this.attackReady;
     }
     public boolean invisible(){
         return this.invisible;
@@ -163,5 +182,20 @@ public class Player {
         onEnd = false;
         alive = true;
         downed = false;
+    }
+    public class AttackThread extends Thread{
+        public AttackThread(){}
+        public void run(){
+            while(true){
+                if(!(attackReady)){
+                    try {
+                        Thread.sleep(Const.PLAYER_ATTACK_SPEED);
+                    } catch (Exception e) {
+                        // TODO: handle exception
+                    }
+                    attackReady = true;
+                }
+            }
+        }
     }
 }
