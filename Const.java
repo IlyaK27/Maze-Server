@@ -43,6 +43,8 @@ public class Const {
     public static final int PLAYER_DIMENSIONS = 110;
     public static final int PLAYER_MAX_HEALTH = 100;
     public static final int PLAYER_ATTACK_SPEED = 500; // Can attack twice per second
+    public static final int ATTACK_RANGE = 40; // How far the attack goes from the player
+    public static final int PLAYER_DAMAGE = 30;
     public static final int ENEMY_DIMENSIONS = 120;
     public static final int MAX_ENEMIES = 1;
     public static final int ENEMIES_INCREMENT = 4;
@@ -51,7 +53,7 @@ public class Const {
     public static final int ENEMY_HEALTH_INCREMENT = 50;
     public static final int ENEMY_DAMAGE = 25;
     public static final int ENEMY_DAMAGE_INCREMENT = 50;
-    public static final int ENEMY_ATTACKS_SPEED = 750;
+    public static final int ENEMY_ATTACKS_SPEED = 200;
     public static final int ENEMY_RANGE = TILE_DIMENSIONS * 5;
     public static final int ENEMY_MOVEMENT_BREAK = 45;
     public static final int MAZE_INCREASE = 5; // Difference in dimensions of maze after reach round
@@ -78,6 +80,7 @@ public class Const {
     public static final String ABILITY2 = "ABILITY2"; // Client used second ability
     public static final String ULTIMATE = "ULTIMATE"; // Client used ultimate ability
     public static final String DRAWN = "DRAWN"; // Client has drawn their map so send new map update
+    public static final String SPECTATE = "SPECTATE"; // Client tells server the want to spectate the provided player
     public static final String LEAVE = "LEAVE"; // Client left lobby
 
     // Server to Client commands

@@ -2,7 +2,6 @@
 import java.io.*;
 import java.util.*;
 import java.net.*;
-import java.awt.*;
 
 public class Server {    
     ServerSocket serverSocket;

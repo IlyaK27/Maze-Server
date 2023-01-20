@@ -47,7 +47,7 @@ public class Lobby extends Thread{
                 boolean levelBeaten = true;
                 for(PlayerHandler playerHandler: playerHandlers){
                     if(playerHandler.drawn){
-                        int[] fovDimensions = game.calculateFov(playerHashMap.get(playerHandler));
+                        int[] fovDimensions = game.calculateFov(playerHandler.currentPlayer); // Giving the client the fov of the player they are currently spectating (By default its themselves but once they die it can change)
                         playerHandler.sHandler.print(Const.DRAW_MAP + " " + fovDimensions[0] + " " + fovDimensions[1] + " " + fovDimensions[2] + " " + fovDimensions[3]);
                         playerHandler.drawn = false;
                         for(int y = 0; y < fovDimensions[0]; y++){
@@ -95,6 +95,7 @@ public class Lobby extends Thread{
             }
         }
         Player player = new Player(playerName, colors.poll());
+        playerHandler.currentPlayer = player;
         for(PlayerHandler players: playerHandlers){ // Telling other players a player has joined
             System.out.println("New player for current lobby");
             players.sHandler.print(Const.NEW_PLAYER + " " + playerName + " " + player.color()); // Client will decode the hex using Color.decode() method
@@ -161,6 +162,7 @@ public class Lobby extends Thread{
         Server.PlayerHandler sHandler;
         private boolean ready;
         private boolean drawn;
+        private Player currentPlayer;
         
         public PlayerHandler(Socket socket, Server.PlayerHandler sHandler) { 
             this.socket = socket;
@@ -169,6 +171,7 @@ public class Lobby extends Thread{
             this.sHandler = sHandler;
             this.ready = false;
             this.drawn = true;
+
         }
         // Whether the socket is dead
         public boolean isDead() {
@@ -291,7 +294,8 @@ public class Lobby extends Thread{
                                     }
                                }
                             }
-                            else if (args[0].equals(Const.MOVE)) { // LEAVE    
+                            else if (args[0].equals(Const.MOVE)) { // MOVE, direction 
+                                System.out.print("move" + playerHashMap.get(this).downed() + " " + playerHashMap.get(this).alive());
                                 if(!(playerHashMap.get(this).downed()) && playerHashMap.get(this).alive()){
                                     int direction = Integer.parseInt(args[1]);
                                     playerHashMap.get(this).move(direction, maze);
@@ -307,12 +311,25 @@ public class Lobby extends Thread{
                                 System.out.println("Lobbyleave");
                                 removePlayer(true);
                             }
-                            else if (args[0].equals(Const.DRAWN)) { // LEAVE    
+                            else if (args[0].equals(Const.DRAWN)) { // DRAWN    
                                 this.drawn = true;
                             }
-                            else if (args[0].equals(Const.ATTACK)) { // LEAVE    
-                                if(playerHashMap.get(this).attackReady() && !(playerHashMap.get(this).downed()) && playerHashMap.get(this).alive()){
-                                    
+                            else if (args[0].equals(Const.ATTACK)) { // ATTACK
+                                // Attack command only gets sent when player is on the game screen so server doesn't need to worry about if they are in game or not
+                                Player player = playerHashMap.get(this);
+                                if(player.attackReady() && !(player.downed()) && player.alive()){ 
+                                    player.attack(game.enemyHandler.enemies);
+                                }
+                            }
+                            else if (args[0].equals(Const.SPECTATE)) { // LEAVE    
+                                String playerName = args[1];
+                                Player spectatingPlayer;
+                                for(Player player: players){
+                                    if(player.name().equals(playerName)){
+                                        spectatingPlayer = player;
+                                        this.currentPlayer = spectatingPlayer;
+                                        break;
+                                    }
                                 }
                             }
                         } catch (Exception e) {
@@ -429,9 +446,6 @@ public class Lobby extends Thread{
                 }
                 playing = true;
                 game.enemyHandler.start();
-                for(Enemy enemy: game.enemyHandler.enemies){
-                    enemy.startAttacking();
-                }
             }else if (countdown == null){
                 System.out.println("Countdown stopped");
             }
@@ -449,11 +463,10 @@ public class Lobby extends Thread{
             while(Const.BLEEDING_OUT_TIME / 10 != counter && playerHashMap.get(player).getHealth() != Const.PLAYER_MAX_HEALTH){
                 try {
                     Thread.sleep(10);
-                } catch (Exception e) {
-                    // TODO: handle exception
-                }
+                } catch (Exception e) {}
                 for(Player currentPlayer: players){
-                    if(currentPlayer.getHitbox().intersects(playerHashMap.get(player).getHitbox()) && !(currentPlayer.name().equals(playerHashMap.get(player).name())) && reviver == null){
+                    if(currentPlayer.getHitbox().intersects(playerHashMap.get(player).getHitbox()) && !(currentPlayer.name().equals(playerHashMap.get(player).name())) && reviver == null 
+                        && playerHashMap.get(player).alive() && (playerHashMap.get(player).downed())){
                         reviver = new PlayerReviver(player, this);  
                     }
                 }
@@ -499,14 +512,15 @@ public class Lobby extends Thread{
                 currentPlayer.heal(Const.PLAYER_MAX_HEALTH / 10);
                 for(PlayerHandler playerHandler: playerHandlers){ // Checking if there is someone still reviving the player
                     playerHandler.sHandler.print(Const.PLAYER + " " + currentPlayer.name() + " " + currentPlayer.getX() + " " + currentPlayer.getY() + " " + currentPlayer.getDirection() + " " + currentPlayer.getHealth());
-                    if(playerHashMap.get(player).getHitbox().intersects(playerHashMap.get(playerHandler).getHitbox()) && 
-                        !(playerHashMap.get(playerHandler).name().equals(playerHashMap.get(player).name()) && playerHashMap.get(playerHandler).alive() && !(playerHashMap.get(playerHandler).downed()))){
+                    Player otherPlayer = playerHashMap.get(playerHandler);
+                    if(currentPlayer.getHitbox().intersects(otherPlayer.getHitbox()) && !(otherPlayer.name().equals(currentPlayer.name()) && otherPlayer.alive() && !(otherPlayer.downed()))){
                         reviving = true;
                     }
                 }
             }
-            while(reviving);
+            while(reviving && currentPlayer.getHealth() != Const.PLAYER_MAX_HEALTH);
             if(currentPlayer.getHealth() == Const.PLAYER_MAX_HEALTH){
+                System.out.println("player revived");
                 for(PlayerHandler playerHandler: playerHandlers){ // Checking if there is someone still reviving the player
                     playerHandler.sHandler.print(Const.REVIVED + " " + currentPlayer.name());
                 }
@@ -656,7 +670,7 @@ public class Lobby extends Thread{
             for(int y = 0, playerCount = 0; y < 2 && playerCount < players.size(); y++){
                 for(int x = 0; x < 2 && playerCount < players.size(); x++, playerCount++){
                     //System.out.println("Coords - " + topLeftStart.x() * Const.TILE_DIMENSIONS + " " + topLeftStart.y() * Const.TILE_DIMENSIONS);
-                    //System.out.println("Coords - " + (topLeftStart.x() + 2 * x) * Const.TILE_DIMENSIONS + " " + (topLeftStart.y() + 2 * y) * Const.TILE_DIMENSIONS + " " + ((topLeftStart.x() + 2 * x) * Const.TILE_DIMENSIONS + + Const.TILE_DIMENSIONS/2) + " " + ((topLeftStart.y() + 2 * y) * Const.TILE_DIMENSIONS + + Const.TILE_DIMENSIONS/2));
+                    //System.out.println("Coords - " + (topLeftStart.x() + 2 * x) * Const.TILE_DIMENSIONS + " " + (toWEpLeftStart.y() + 2 * y) * Const.TILE_DIMENSIONS + " " + ((topLeftStart.x() + 2 * x) * Const.TILE_DIMENSIONS + + Const.TILE_DIMENSIONS/2) + " " + ((topLeftStart.y() + 2 * y) * Const.TILE_DIMENSIONS + + Const.TILE_DIMENSIONS/2));
                     players.get(playerCount).setCoords(((topLeftStart.x() + 2 * x) * Const.TILE_DIMENSIONS) + Const.TILE_DIMENSIONS/2, ((topLeftStart.y() + 2 * y) * Const.TILE_DIMENSIONS) + Const.TILE_DIMENSIONS/2);
                 }
             }
@@ -678,31 +692,51 @@ public class Lobby extends Thread{
                 System.out.println(enemies.size());
             }
             public void run(){
+                Stack<Integer> deadEnemies = new Stack<Integer>();
+                int attackTimer = 0;
                 while(playing){
                     //System.out.println("enemy playing");
+                    try{
+                        Thread.sleep(15); 
+                    }catch(Exception e){}
                     int idCounter = 0;
                     for(Enemy enemy: enemies){
-                        //System.out.println("enemy scanned");
                         if(enemy.getHealth() > 0){
                             boolean enemyMoved = enemy.move(players);
+                            //System.out.println("enemy moved " + enemyMoved);
                             if(enemyMoved){
                                 for(PlayerHandler playerHandler: playerHandlers){
-                                    playerHandler.sHandler.print(Const.ENEMY + " " + idCounter + " " + enemy.getX() + " " + enemy.getY() + " " + enemy.getAngle() + " " + enemy.getHealth());
+                                    playerHandler.sHandler.print(Const.ENEMY + " " + idCounter + " " + enemy.getX() + " " + enemy.getY() + " " + enemy.getHealth());
+                                }
+                            }
+                            if(attackTimer >= Const.ENEMY_ATTACKS_SPEED){
+                                for(Player player: players){
+                                    if(enemy.getHitbox().intersects(player.getHitbox())){
+                                        player.damage(enemy.getDamage());
+                                    }
                                 }
                             }
                         }else{
-                            enemies.remove(enemy);
-                            Enemy newEnemy = addEnemy();
-                            for(PlayerHandler playerHandler: playerHandlers){
-                                playerHandler.sHandler.print(Const.KILLEDE + " " + idCounter);
-                                playerHandler.sHandler.print(Const.NEWE + " " + newEnemy.getX() + " " + newEnemy.getY() + newEnemy.getHealth());
-                            }
+                            deadEnemies.add(idCounter);
                         }
                         idCounter++;
                     }
+                    if(attackTimer < Const.ENEMY_ATTACKS_SPEED){attackTimer++;}
+                    else{attackTimer = 0;}
+                    while(!(deadEnemies.isEmpty())){
+                        int id = deadEnemies.pop();
+                        enemies.remove(id);
+                        Enemy newEnemy = addEnemy();
+                        for(PlayerHandler playerHandler: playerHandlers){
+                            playerHandler.sHandler.print(Const.KILLEDE + " " + id);
+                            playerHandler.sHandler.print(Const.NEWE + " " + newEnemy.getX() + " " + newEnemy.getY() + " " + newEnemy.getHealth());
+                        }
+                    }
+
                     try{
                         Thread.sleep(Const.ENEMY_MOVEMENT_BREAK); // Making it so enemies dont move at lightning speed
                     }catch(Exception e){}
+
                 }
             }
             private Enemy addEnemy(){
@@ -729,6 +763,7 @@ public class Lobby extends Thread{
                 //int enemyY = enemyYSquare * Const.TILE_DIMENSIONS;
                 Enemy enemy = new Enemy(enemyX, enemyY, maze, round);
                 enemies.add(enemy);
+                System.out.println("enemy added");
                 return enemy;
             }
         }

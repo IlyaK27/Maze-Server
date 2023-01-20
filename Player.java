@@ -33,6 +33,7 @@ public class Player {
         this.invisible = false;
         this.attackReady = true;
         this.attacker = new AttackThread();
+        this.attacker.start();
     }   
     public String name(){
         return this.name;
@@ -66,12 +67,22 @@ public class Player {
     }
     public void attack(ArrayList<Enemy> enemies){
         int directionEven = this.direction % 2; // If this is 0 the player is facing up or down, if its 1 its odd and they are facing left or right
+        Rectangle attackHitbox;
         if(directionEven == 0){
-
+            int attackY = this.y - Const.ATTACK_RANGE;
+            if(direction == 2){attackY = this.y + Const.PLAYER_DIMENSIONS;}
+            attackHitbox = new Rectangle(this.x, attackY, Const.PLAYER_DIMENSIONS, Const.ATTACK_RANGE);
+        }else{
+            int attackX = this.x - Const.ATTACK_RANGE;
+            if(direction == 1){attackX = this.x + Const.PLAYER_DIMENSIONS;}
+            attackHitbox = new Rectangle(attackX, this.y, Const.ATTACK_RANGE, Const.PLAYER_DIMENSIONS);
         }
-        Rectangle attackHitbox = new Rectangle(this.x + (Const.PLAYER_DIMENSIONS));
         for(Enemy enemy: enemies){
-
+            System.out.println("Attempted to hit enemy");
+            if(attackHitbox.intersects(enemy.getHitbox())){
+                enemy.damage(Const.PLAYER_DAMAGE);
+                System.out.println("Enemy hit");
+            }
         }
         this.attackReady = false;
     }
@@ -187,12 +198,11 @@ public class Player {
         public AttackThread(){}
         public void run(){
             while(true){
+                try {
+                    Thread.sleep(Const.PLAYER_ATTACK_SPEED);
+                } catch (Exception e) {}
                 if(!(attackReady)){
-                    try {
-                        Thread.sleep(Const.PLAYER_ATTACK_SPEED);
-                    } catch (Exception e) {
-                        // TODO: handle exception
-                    }
+                    System.out.println("Attack ready");
                     attackReady = true;
                 }
             }
