@@ -1,7 +1,13 @@
+/**
+ * Final Game Enemy Class
+ * @Author Ilya Kononov
+ * @Date = January 22 2023
+ * This is the class for the Enemy of the game
+ * Houses the state/position of the player
+ */
+
 import java.awt.Rectangle;
 import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.Queue;
 
 public class Enemy {
     private int x;
@@ -11,6 +17,7 @@ public class Enemy {
     private int damage;
     private Rectangle hitbox;
     private char[][] maze;
+    private boolean inWall;
     
     public Enemy(int x, int y, char maze[][], int level){
         this.x = x;
@@ -20,7 +27,9 @@ public class Enemy {
         this.damage = Const.ENEMY_DAMAGE + (level - 1) * Const.ENEMY_DAMAGE_INCREMENT;
         this.hitbox = new Rectangle(x, y, Const.ENEMY_DIMENSIONS, Const.ENEMY_DIMENSIONS);
         this.maze = maze;
+        this.inWall = false;
     }
+    // Getters and Setters
     public int getX(){
         return this.x;
     }
@@ -39,15 +48,16 @@ public class Enemy {
     public Rectangle getHitbox(){
         return this.hitbox;
     }
+    public boolean inWall(){
+        return this.inWall;
+    }
     public void setCoords(int centerX, int centerY){
         this.x = centerX - 55;
         this.y = centerY - 55;
         this.hitbox.setLocation(this.x, this.y);
     }
-    public void damage(int damage){
-        this.health = Math.max(0, this.health - damage);
-        System.out.println("Enemy health" + this.health);
-    }
+
+    // Methods to do with angles and movement
     private double radians(int angle) {
         return angle / 180d * Math.PI;
     }
@@ -68,9 +78,10 @@ public class Enemy {
     public boolean move(ArrayList<Player> players){
         Player closestPlayer = null;
         int closestDistance = 0;
+        // Finding the closest player and if they are within the detection range 
         for(Player player: players){
             int playerDistance = (int)Math.sqrt(Math.pow(this.x - player.getX(), 2) + Math.pow(this.y - player.getY(), 2));
-            if(player.alive() && !(player.downed()) && !(player.invisible()) && (closestPlayer == null || closestDistance > playerDistance)){
+            if(player.alive() && !(player.downed()) && !(player.cloaked()) && (closestPlayer == null || closestDistance > playerDistance)){
                 closestPlayer = player;
                 closestDistance = playerDistance;
             }
@@ -79,61 +90,40 @@ public class Enemy {
         int tileY = (this.y + Const.ENEMY_DIMENSIONS / 2) / Const.TILE_DIMENSIONS;
         int x = this.x;
         int y = this.y;
-        if(tileX - 1 >= 0 && tileX + 1 <= maze.length - 1 && tileY - 1 >= 0 && tileY + 1 <= maze.length - 1 && closestPlayer != null && closestDistance <= Const.ENEMY_RANGE){
-            //System.out.println("enemymove");
+        if(closestPlayer != null && closestDistance <= Const.ENEMY_RANGE){ // If there is a valid player close
             this.angle = calculateAngle(closestPlayer.getX(), closestPlayer.getY());
             x = this.x + xChange();
             y = this.y + yChange();
             this.hitbox.setLocation(x, y);
-            Queue<Rectangle> collidedTiles = new LinkedList<Rectangle>();
             for(Integer[] adjacentTile: Const.ADJACENT_SQUARES){
                 int adjRectXTile = tileX + adjacentTile[0];
                 int adjRectYTile = tileY + adjacentTile[1];
                 if(adjRectXTile >= 0 && adjRectXTile <= maze.length - 1 && adjRectYTile >= 0 && adjRectYTile <= maze.length - 1){
                     Rectangle adjRect = new Rectangle(adjRectXTile * Const.TILE_DIMENSIONS, adjRectYTile * Const.TILE_DIMENSIONS, Const.TILE_DIMENSIONS, Const.TILE_DIMENSIONS);
-                    if(adjRect.intersects(this.hitbox) && maze[adjRectYTile][adjRectXTile] == Const.WALL){
-                        collidedTiles.add(adjRect);
+                    if(adjRect.intersects(this.hitbox) && maze[adjRectYTile][adjRectXTile] == Const.WALL){ // Checking if enemy has collided with any walls
+                        if(adjRect.contains(this.hitbox)){ // If the enemy somehow ended up fully inside the wall it will get deleted and respawned
+                            this.inWall = true;
+                            System.out.println("enemy In wall");
+                        }else{ // If the player hit a wall
+                            // These variables are to make sure the right collision spot is checked
+                            int xDistance = (int)Math.abs(adjRect.getCenterX() - (x + Const.ENEMY_DIMENSIONS / 2));
+                            int yDistance = (int)Math.abs(adjRect.getCenterY() - (y + Const.ENEMY_DIMENSIONS / 2));
+                            Rectangle intersection = adjRect.intersection(this.hitbox);
+                            // Horizontal
+                            if(xChange() < 0 && xDistance >= yDistance && (int)intersection.getWidth() > 0){ // Enemy hit wall on its left
+                                x = (int)(adjRect.getX() + Const.TILE_DIMENSIONS);
+                            }else if(xChange() > 0 && xDistance >= yDistance && (int)intersection.getWidth() > 0){ // Enemy hit wall on its right
+                                x = (int)(adjRect.getX() - Const.ENEMY_DIMENSIONS);
+                            }
+                            // Vertical
+                            if(yChange() < 0 && yDistance >= xDistance && (int)intersection.getHeight() > 0){ // Enemy hit wall above it
+                                y = (int)(adjRect.getY() + Const.TILE_DIMENSIONS);
+                            }else if(yChange() > 0 && yDistance >= xDistance && (int)intersection.getHeight() > 0){ // Enemy hit wall below it
+                                y = (int)(adjRect.getY() - Const.ENEMY_DIMENSIONS);
+                            }
+                        }
                     }
                 }   
-            }
-            while(!(collidedTiles.isEmpty())){
-                Rectangle adjRect = collidedTiles.poll();
-                // These variables are to make sure the right collision spot is checked
-                int xDistance = (int)Math.abs(adjRect.getCenterX() - hitbox.getCenterX());
-                int yDistance = (int)Math.abs(adjRect.getCenterY() - hitbox.getCenterY());
-                if(xChange() < 0 && xDistance >= yDistance && ((int)adjRect.getX() + Const.TILE_DIMENSIONS) > x && ((y >= (int)adjRect.getY() && y <= (int)adjRect.getY() + Const.TILE_DIMENSIONS) 
-                    || (y + Const.ENEMY_DIMENSIONS >= (int)adjRect.getY() && y + Const.ENEMY_DIMENSIONS <= (int)adjRect.getY() + Const.TILE_DIMENSIONS))){ // If hit wall to the left
-                //if(x >= (int)adjRect.getX() && x <= (int)(adjRect.getX() + Const.TILE_DIMENSIONS)){ // If hit wall to the left
-                    x = (int)(adjRect.getX() + Const.TILE_DIMENSIONS);
-                    //System.out.println("left");
-                }
-                else if(xChange() > 0 && xDistance >= yDistance && ((int)adjRect.getX()) < x + Const.ENEMY_DIMENSIONS && ((y >= (int)adjRect.getY() && y <= (int)adjRect.getY() + Const.TILE_DIMENSIONS) 
-                    || (y + Const.ENEMY_DIMENSIONS >= (int)adjRect.getY() && y + Const.ENEMY_DIMENSIONS <= (int)adjRect.getY() + Const.TILE_DIMENSIONS))){ // If hit wall to the right
-                    x = (int)(adjRect.getX() - Const.ENEMY_DIMENSIONS);
-                    //System.out.println("right");
-                }
-                if(yChange() < 0 && yDistance >= xDistance && ((int)adjRect.getY() + Const.TILE_DIMENSIONS) > y && ((x >= (int)adjRect.getX() && y <= (int)adjRect.getX() + Const.TILE_DIMENSIONS) 
-                    || (x + Const.ENEMY_DIMENSIONS >= (int)adjRect.getX() && x + Const.ENEMY_DIMENSIONS <= (int)adjRect.getX() + Const.TILE_DIMENSIONS))){ // If hit wall above
-                    y = (int)(adjRect.getY() + Const.TILE_DIMENSIONS);
-                    //System.out.println("up");
-                }
-                else if(yChange() > 0 && yDistance >= xDistance && ((int)adjRect.getY()) < y + Const.ENEMY_DIMENSIONS && ((x >= (int)adjRect.getX() && y <= (int)adjRect.getX() + Const.TILE_DIMENSIONS) 
-                    || (x + Const.ENEMY_DIMENSIONS >= (int)adjRect.getX() && x + Const.ENEMY_DIMENSIONS <= (int)adjRect.getX() + Const.TILE_DIMENSIONS))){ // If hit wall below
-                    y = (int)(adjRect.getY() - Const.ENEMY_DIMENSIONS);
-                    //System.out.println("down");
-                }
-                /*if(adjRect.contains(x, (int)adjRect.getY())){ // If hit wall to the left
-                    x = (int)(adjRect.getX() + Const.TILE_DIMENSIONS);
-                }else if (adjRect.contains(x + Const.ENEMY_DIMENSIONS, (int)adjRect.getY())){ // If hit wall to the right
-                    x = (int)(adjRect.getX() - Const.ENEMY_DIMENSIONS);
-                }
-                if(adjRect.contains((int)adjRect.getX(), y)){ // If hit wall above
-                    System.out.println("yhit");
-                    y = (int)(adjRect.getY() + Const.TILE_DIMENSIONS);
-                }else if (adjRect.contains((int)adjRect.getX(), y + Const.ENEMY_DIMENSIONS)){ // If hit wall below
-                    y = (int)(adjRect.getY() - Const.ENEMY_DIMENSIONS);
-                    System.out.println("yhit");
-                }*/
             }
         }
         else{
@@ -143,5 +133,9 @@ public class Enemy {
         this.y = y;
         this.hitbox.setLocation(this.x, this.y);
         return true;
+    }
+    public void damage(int damage){
+        this.health = Math.max(0, this.health - damage);
+        System.out.println("Enemy health" + this.health);
     }
 }

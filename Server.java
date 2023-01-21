@@ -1,3 +1,12 @@
+/**
+ * Final Game Server Class
+ * @Author Ilya Kononov
+ * @Date = January 22 2023
+ * This is the Server class of the game
+ * This class basically encompasses all of the lobbies where the actual games happens
+ * This is where the program is started
+ */
+
 //imports for network communication
 import java.io.*;
 import java.util.*;
@@ -9,15 +18,9 @@ public class Server {
     PrintWriter output;
     BufferedReader input;
 
-    //ThreadMachine threadMachine;
-
     HashSet<PlayerHandler> handlers;
-    //HashMap<Integer, Ball> balls;
     ArrayList<Lobby> lobbies;
-    // Ball id to playerHandler
     HashMap<Integer, PlayerHandler> handlerMap;
-
-    //public final Object ballLock = new Object();
     
     public static void main(String[] args) throws Exception{ 
         Server game = new Server();
@@ -27,12 +30,12 @@ public class Server {
     public void go() throws Exception{ 
         //create a socket with the local IP address and wait for connection request       
         System.out.println("Launching server...");
-        serverSocket = new ServerSocket(Const.PORT);                //create and bind a socket
+        serverSocket = new ServerSocket(Const.PORT);  //create and bind a socket
         System.out.println("Connected at port " + serverSocket.getLocalPort());
         this.setup();
         // Create a thread that updates the game state
         while (true) {
-            clientSocket = serverSocket.accept();             //wait for connection request
+            clientSocket = serverSocket.accept(); //wait for connection request
             System.out.println("Player connected");
             PlayerHandler handler = new PlayerHandler(clientSocket);
             handlers.add(handler);
@@ -43,44 +46,7 @@ public class Server {
         this.handlers = new HashSet<PlayerHandler>();
         this.lobbies = new ArrayList<Lobby>();
         this.handlerMap = new HashMap<Integer, PlayerHandler>();
-        //this.threadMachine = new ThreadMachine(this);
-        //this.threadMachine.start();
     }
-    /*public void printNew(Ball ball, PlayerHandler handler) {
-        handler.print("NEW " + ball.getId() + " " + ball.getColor().getRed() + " " + ball.getColor().getGreen() + " " + ball.getColor().getBlue() + " " + ball.getName());
-    }
-    public Ball createBall(PlayerHandler handler, Color color, String name) {
-        Ball ball = new Ball(idCounter++, (int)(Math.random() * Const.WIDTH), (int)(Math.random() * Const.HEIGHT), (int)(Math.random() * 360), color, name);
-        synchronized (ballLock) {
-            this.balls.put(ball.getId(), ball);
-        }
-        for (PlayerHandler i: this.handlers) {
-            if (handler.equals(i)) {
-                continue;
-            }
-            this.printNew(ball, i);
-        }
-        this.handlerMap.put(ball.getId(), handler);
-        return ball;
-    }*/
-    /*public void killPellet(int id) {
-        synchronized (pelletLock) {
-            this.pellets.remove(id);
-        }
-        for (Integer handlerId: this.handlerMap.keySet()) {
-            this.handlerMap.get(handlerId).print("REMOVE " + id + " pellet");
-        }
-    }*/
-    /*public void killBall(int id) {
-        synchronized (ballLock) {
-            this.balls.remove(id);
-        }
-        this.handlerMap.get(id).kill();
-        this.handlerMap.remove(id);
-        for (PlayerHandler handler: this.handlers) {
-            handler.print("REMOVE " + id + " ball");
-        }
-    }*/
     public void cleanSockets() {
         for (PlayerHandler handler: this.handlers) {
             if (handler.isDead()) {
@@ -91,16 +57,16 @@ public class Server {
     }
 //------------------------------------------------------------------------------
     class PlayerHandler extends Thread { 
-        Socket socket;
-        PrintWriter output;
-        BufferedReader input;
+        private Socket socket;
+        private PrintWriter output;
+        private BufferedReader input;
         public boolean inLobby = false;
-        Heartbeat heartbeat;
+        private Heartbeat heartbeat;
         private boolean alive = true;
         private String lobbyName;
         private boolean newLobby; // This variable makes it so that when the player sends the name command something different can happen depending on the state
         
-        public PlayerHandler(Socket socket) { 
+        public PlayerHandler(Socket socket){ 
             this.socket = socket;
             this.heartbeat = new Heartbeat(this);
             this.heartbeat.start();
@@ -108,16 +74,15 @@ public class Server {
             this.newLobby = false;
         }
         // Whether the socket is dead
-        public boolean isDead() {
-            //System.out.println("Server  " + this.socket + " " + this.output + " " + this.input);
+        public boolean isDead(){
             return this.socket == null || this.output == null || this.input == null;
         }
-        public void run() {
-            try {
+        public void run(){
+            try{
                 input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 output = new PrintWriter(socket.getOutputStream());
                 String msg;
-                while (true) {
+                while (true){
                     //receive a message from the client
                     msg = null;
                     /*try {Thread.sleep(1000 / Const.TPS);} catch (Exception e) {};
@@ -151,10 +116,10 @@ public class Server {
                             } else if (args[0].equals(Const.NEW_LOBBY)) { // NEW
                                 this.print(Const.NAME + " " + Const.NEW_LOBBY);
                                 newLobby = true;
-                            } else if (args[0].equals(Const.JOIN_LOBBY)) { // JOIN lobbyName playerName
+                            }else if (args[0].equals(Const.JOIN_LOBBY)) { // JOIN lobbyName playerName
                                 String lobbyName = args[1];
                                 this.print(Const.NAME + " " + Const.JOIN_LOBBY + " " + lobbyName);
-                            } else if (args[0].equals(Const.NAME)) { // NAME playerName
+                            }else if (args[0].equals(Const.NAME)) { // NAME lobbyName playerName 
                                 lobbyName = args[1]; // Lobby name is the (players name)'s lobby
                                 if(newLobby){
                                     boolean nameRepeated = true;
@@ -178,9 +143,7 @@ public class Server {
                                     newLobby.addPlayer(clientSocket, this, args[1]); // Even though the lobby name might now have a number that doesn't mean the actual players name should change
                                     newLobby.start();
                                 }else{
-                                    System.out.println("join added");
                                     String playerName = args[2];
-                                    System.out.println("Lobbyplayername = " + playerName);
                                     for (Lobby lobby: lobbies) {
                                         if(lobby.name().equals(lobbyName) && !(lobby.locked())){
                                             this.print(Const.JOINED + " " + lobbyName);
@@ -217,15 +180,13 @@ public class Server {
             inLobby = false;
             newLobby = false;
             this.alive = alive;
-            for (Lobby lobby: lobbies) {
+            for (Lobby lobby: lobbies){ // Making sure that there are no empty lobbies 
                 if(lobby.name().equals(this.lobbyName) && lobby.playerCount() == 0){
-                    System.out.println("Lobby removed");
                     lobbies.remove(lobby);
                     break;
                 }
             }
             if(!(this.alive)){
-                System.out.println("beeeee= " + inLobby);
                 this.close();
             }
         }
@@ -268,166 +229,4 @@ public class Server {
             }
         }
     } 
-    /*class ThreadMachine {
-        Server server;
-        PelletThread pelletThread;
-        BallThread ballThread;
-        SpeakerThread speakerThread;
-        SocketCleanerThread socketCleanerThread;
-        AnalyticsThread analyticsThread;
-        ThreadMachine(Server server) {
-            this.server = server;
-            this.pelletThread = new PelletThread(this.server);
-            this.ballThread = new BallThread(this.server);
-            this.speakerThread = new SpeakerThread(this.server);
-            this.socketCleanerThread = new SocketCleanerThread(this.server);
-            this.analyticsThread = new AnalyticsThread(this.server);
-        }
-        public void start() {
-            this.pelletThread.start();
-            this.ballThread.start();
-            this.speakerThread.start();
-            this.socketCleanerThread.start();
-            this.analyticsThread.start();
-        }
-        class PelletThread extends Thread {
-            Server server;
-            PelletThread(Server server) {
-                this.server = server;
-            }
-            public void run() {
-                while (true) {
-                    try {Thread.sleep(Const.PELLET_SPAWN_RATE);} catch (Exception e) {};
-                    this.server.createPellet();
-                }
-            }
-        }
-        class BallThread extends Thread {
-            Server server;
-            BallThread(Server server) {
-                this.server = server;
-            }
-            public void run() {
-                while (true) {
-                    try {
-                        try {Thread.sleep(200);} catch (Exception e) {};
-                        // Move balls
-                        synchronized (ballLock) {
-                            for (Integer id: this.server.balls.keySet()) {
-                                Ball ball = this.server.balls.get(id);
-                                ball.setX(ball.getX() + Const.xChange(ball.getAngle(), Const.speed(ball.getRadius())));
-                                ball.setY(ball.getY() + Const.yChange(ball.getAngle(), Const.speed(ball.getRadius())));
-                            }
-                        }
-                        // Eat pellets and balls
-                        synchronized (ballLock) {
-                            for (Integer id: this.server.balls.keySet()) {
-                                Ball ball = this.server.balls.get(id);
-                                HashSet<Integer> removals = new HashSet<Integer>();
-                                synchronized (pelletLock) {
-                                    for (Integer pelletId: this.server.pellets.keySet()) {
-                                        if (ball.intersects(this.server.pellets.get(pelletId))) {
-                                            removals.add(pelletId);
-                                            ball.setRadius(ball.getRadius() + 3);
-                                        }
-                                    }
-                                }
-                                for (Integer i: removals) {
-                                    this.server.killPellet(i);
-                                }
-                                removals.clear();
-                                for (Integer ballId: this.server.balls.keySet()) {
-                                    if (ball.getId() == ballId) {
-                                        continue;
-                                    }
-                                    if (ball.eats(this.server.balls.get(ballId))) {
-                                        removals.add(ballId);
-                                        ball.setRadius(ball.getRadius() + this.server.balls.get(ballId).getRadius() / 2);
-                                    }
-                                }
-                                for (Integer i: removals) {
-                                    this.server.killBall(i);
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-        class SpeakerThread extends Thread {
-            Server server;
-            SpeakerThread(Server server) {
-                this.server = server;
-            }
-            public void run() {
-                while (true) {
-                    try {
-                        for (PlayerHandler handler: this.server.handlerMap.values()) {
-                            // Send info about the player's own ball
-                            handler.print("MOVE " + handler.ball.getX() + " " + handler.ball.getY() + " " + handler.ball.getRadius());
-                            // Send pellet info
-                            synchronized (pelletLock) {
-                                for (Pellet pellet: this.server.pellets.values()) {
-                                    if (handler.ball.distance(pellet) <= Const.CLIENT_VIEW_RADIUS) {
-                                        handler.print("PELLET " + pellet.getId() + " " + pellet.getX() + " " + pellet.getY() + " " + pellet.getRadius() + " " + pellet.getColor().getRed() + " " + pellet.getColor().getGreen() + " " + pellet.getColor().getBlue());
-                                    }
-                                }
-                            }
-                            // Send ball info
-                            synchronized (ballLock) {
-                                for (Ball ball: this.server.balls.values()) {
-                                    if (!handler.ball.equals(ball) && handler.ball.distance(ball) <= Const.CLIENT_VIEW_RADIUS) {
-                                        handler.print("BALL " + ball.getId() + " " + ball.getX() + " " + ball.getY() + " " + ball.getRadius());
-                                    }
-                                }
-                            }
-                        }
-                        try {Thread.sleep(1000 / Const.TPS);} catch (Exception e) {};
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-        class SocketCleanerThread extends Thread {
-            Server server;
-            SocketCleanerThread(Server server) {
-                this.server = server;
-            }
-            public void run() {
-                while (true) {
-                    try {
-                        this.server.cleanSockets();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    System.out.println("Clean!");
-                    try {Thread.sleep(5000);} catch (Exception e) {};
-                }
-            }
-        }
-        class AnalyticsThread extends Thread {
-            Server server;
-            AnalyticsThread(Server server) {
-                this.server = server;
-            }
-            public void run() {
-                while (true) {
-                    System.out.println("------------------------------------------------------------------------------");
-                    // How many players connected
-                    System.out.println(this.server.handlers.size() + " players connected");
-                    // How many balls
-                    System.out.println(this.server.balls.size() + " balls");
-                    // How many pellets
-                    System.out.println(this.server.pellets.size() + " pellets");
-                    // HandlerMap size
-                    System.out.println(this.server.handlerMap.size() + " HandlerMap size");
-                    System.out.println("------------------------------------------------------------------------------");
-                    try {Thread.sleep(5000);} catch (Exception e) {};
-                }
-            }
-        }
-    }*/
 }

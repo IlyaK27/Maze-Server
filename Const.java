@@ -46,14 +46,14 @@ public class Const {
     public static final int ATTACK_RANGE = 40; // How far the attack goes from the player
     public static final int PLAYER_DAMAGE = 30;
     public static final int ENEMY_DIMENSIONS = 120;
-    public static final int MAX_ENEMIES = 1;
+    public static final int MAX_ENEMIES = 8;
     public static final int ENEMIES_INCREMENT = 4;
-    public static final int ENEMY_MOVEMENT_SPEED = 3;
+    public static final int ENEMY_MOVEMENT_SPEED = 6;
     public static final int ENEMY_HEALTH = 200;
     public static final int ENEMY_HEALTH_INCREMENT = 50;
     public static final int ENEMY_DAMAGE = 25;
     public static final int ENEMY_DAMAGE_INCREMENT = 50;
-    public static final int ENEMY_ATTACKS_SPEED = 200;
+    public static final int ENEMY_ATTACKS_SPEED = 20;
     public static final int ENEMY_RANGE = TILE_DIMENSIONS * 5;
     public static final int ENEMY_MOVEMENT_BREAK = 45;
     public static final int MAZE_INCREASE = 5; // Difference in dimensions of maze after reach round
@@ -115,11 +115,11 @@ public class Const {
     public static final String END = "END"; // Tells client there is a end tile here
     public static final String WALl = "WALL"; //Tells client there is a wall tile here
 
-    private static final int PLAYER_MOVEMENT_SPEED = 10;
-    private static final Integer[] MOVE_UP = {0, -PLAYER_MOVEMENT_SPEED};
-    private static final Integer[] MOVE_RIGHT = {PLAYER_MOVEMENT_SPEED, 0};
-    private static final Integer[] MOVE_DOWN = {0, PLAYER_MOVEMENT_SPEED};
-    private static final Integer[] MOVE_LEFT = {-PLAYER_MOVEMENT_SPEED, 0};
+    public static final int PLAYER_MOVEMENT_SPEED = 10;
+    private static final Integer[] MOVE_UP = {0, -1};
+    private static final Integer[] MOVE_RIGHT = {1, 0};
+    private static final Integer[] MOVE_DOWN = {0, 1};
+    private static final Integer[] MOVE_LEFT = {-1, 0};
     public static final HashMap<Integer, Integer[]> PLAYER_DIRECTIONS = new HashMap<Integer, Integer[]>(){ // Direction, correction
         { // x - 0, y - 1
             put(0, MOVE_UP); 

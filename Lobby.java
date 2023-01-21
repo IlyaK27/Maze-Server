@@ -1,3 +1,12 @@
+/**
+ * Final Game Lobby Class
+ * @Author Ilya Kononov
+ * @Date = January 22 2023
+ * This is the Lobby class of the game
+ * In the lobby the actual game will take place and where the players play
+ * Each lobby can be treated as 1 game
+ */
+
 import java.net.*;
 import java.util.*;
 import java.io.*;
@@ -62,6 +71,7 @@ public class Lobby extends Thread{
                     Player currentPlayer = playerHashMap.get(playerHandler);
                     if(currentPlayer.getHealth() == 0 && !(currentPlayer.downed())){
                         currentPlayer.setDown(true);
+                        System.out.println("player downed");
                         for(PlayerHandler handlers: playerHandlers){
                             handlers.sHandler.print(Const.DOWNED + " " + currentPlayer.name());
                         }
@@ -131,14 +141,14 @@ public class Lobby extends Thread{
         // Reseting players
         playing = false;
         if(won){
-            for(PlayerHandler playerHandler: playerHandlers){
-                playerHashMap.get(playerHandler).reset();
-                playerHandler.sHandler.print(Const.WIN);
-            }
             round++;
             this.maze = new char[Const.STARTING_ROWS + (round * Const.MAZE_INCREASE)][Const.STARTING_COLS + (round * Const.MAZE_INCREASE)];
             this.game = new Game(Const.STARTING_ROWS + (round * Const.MAZE_INCREASE), Const.STARTING_COLS + (round * Const.MAZE_INCREASE), Const.MIN_DISTANCE + (round * 2));
             this.maze = this.game.constructMaze();
+            for(PlayerHandler playerHandler: playerHandlers){
+                playerHashMap.get(playerHandler).reset();
+                playerHandler.sHandler.print(Const.WIN);
+            }
         }else{
             for(PlayerHandler playerHandler: playerHandlers){
                 playerHandler.sHandler.print(Const.LOSE + " " + round);
@@ -171,11 +181,9 @@ public class Lobby extends Thread{
             this.sHandler = sHandler;
             this.ready = false;
             this.drawn = true;
-
         }
         // Whether the socket is dead
         public boolean isDead() {
-            //System.out.println(this.socket + " " + this.output + " " + this.input);
             return this.socket == null || this.output == null || this.input == null;
         }
         // Kill the player's ball
@@ -201,34 +209,11 @@ public class Lobby extends Thread{
                         String[] args = msg.split(" ");
                         if(!(msg.equals(Const.DRAWN)) && !(args[0].equals(Const.MOVE))){System.out.println("Message from the clientL: " + msg);}
                         try {
-                            /*  JOIN {red} {green} {blue} {*name}
-                            if (args[0].equals("JOIN")) {
-                                if (this.hasBall()) {
-                                    this.sHandler.print("ERROR Player already has joined game");
-                                } else {
-                                    Color color = new Color(Integer.valueOf(args[1]), Integer.valueOf(args[2]), Integer.valueOf(args[3]));
-                                    String name = "";
-                                    for (int i = 4; i < args.length; i++) {
-                                        name += args[i] + " ";
-                                    }
-                                    this.ball = createBall(this, color, name);
-                                    this.sHandler.print("JOIN " + this.ball.getId() + " " + this.ball.getX() + " " + this.ball.getY() + " " + this.ball.getRadius());
-                                }
-                            }
-                            // PING
-                            // TURN {degree}
-                            else if (args[0].equals("TURN")) {
-                                if (this.hasBall()) {
-                                    this.ball.setAngle(Integer.valueOf(args[1]));
-                                } else {
-                                    this.sHandler.print("ERROR Player has not joined the game");
-                                }
-                            }*/
-                            if (args[0].equals(Const.PING)) {
+                            if (args[0].equals(Const.PING)){ // PING
                                 this.alive = true;
                             }
                             else if (args[0].equals(Const.SELECTED)) { // LEAVE    
-                                this.sHandler.print(Const.MY_ABILITIES);
+                                this.sHandler.print(Const.MY_ABILITIES); // Asking for the players abilities once they selected them
                             }
                             else if (args[0].equals(Const.RESELECT)) { // LEAVE    
                                 this.ready = false;
@@ -251,7 +236,7 @@ public class Lobby extends Thread{
                                     }
                                 }
                             }
-                            else if (args[0].equals(Const.MY_ABILITIES)) { // LEAVE    
+                            else if (args[0].equals(Const.MY_ABILITIES)) { // MY_ABILITIES ability1Name ability2Name ultimateName    
                                 this.ability1 = args[1];
                                 this.ability2 = args[2];
                                 this.ultimate = args[3];
@@ -271,7 +256,7 @@ public class Lobby extends Thread{
                                 //playerHashMap.get(this).setAbility2(ability2);
                                 //playerHashMap.get(this).setUltimate(ultimate);
                             }
-                            else if (args[0].equals(Const.READY)) { // LEAVE    
+                            else if (args[0].equals(Const.READY)) { // READY    
                                 ready = !ready;
                                 String message = " " + playerHashMap.get(this).name(); 
                                 if(ready){
@@ -295,7 +280,6 @@ public class Lobby extends Thread{
                                }
                             }
                             else if (args[0].equals(Const.MOVE)) { // MOVE, direction 
-                                System.out.print("move" + playerHashMap.get(this).downed() + " " + playerHashMap.get(this).alive());
                                 if(!(playerHashMap.get(this).downed()) && playerHashMap.get(this).alive()){
                                     int direction = Integer.parseInt(args[1]);
                                     playerHashMap.get(this).move(direction, maze);
@@ -308,11 +292,10 @@ public class Lobby extends Thread{
                                 }
                             }
                             else if (args[0].equals(Const.LEAVE)) { // LEAVE    
-                                System.out.println("Lobbyleave");
                                 removePlayer(true);
                             }
                             else if (args[0].equals(Const.DRAWN)) { // DRAWN    
-                                this.drawn = true;
+                                this.drawn = true; // This is so that the server doesn't send a new FOV to client before the client drew the previous one
                             }
                             else if (args[0].equals(Const.ATTACK)) { // ATTACK
                                 // Attack command only gets sent when player is on the game screen so server doesn't need to worry about if they are in game or not
@@ -321,7 +304,7 @@ public class Lobby extends Thread{
                                     player.attack(game.enemyHandler.enemies);
                                 }
                             }
-                            else if (args[0].equals(Const.SPECTATE)) { // LEAVE    
+                            else if (args[0].equals(Const.SPECTATE)) { // SPECTATE playerName    
                                 String playerName = args[1];
                                 Player spectatingPlayer;
                                 for(Player player: players){
@@ -343,7 +326,7 @@ public class Lobby extends Thread{
                 this.close();
             }
         }
-        private void removePlayer(boolean alive){
+        private void removePlayer(boolean alive){ // the alive boolean is to later tell the server if the player left because of the heartbeat or the client lfet themselves
             String playerName = playerHashMap.get(this).name();
             colors.add(playerHashMap.get(this).color()); // Adding the players color back so it can be re used again
             players.remove(playerHashMap.get(this));
@@ -364,20 +347,19 @@ public class Lobby extends Thread{
             this.sHandler.print(Const.LEAVE);
             this.close();
         }
-        public String getAbilities() {
+        public String getAbilities(){
             if(ability1 != null && ability2 != null && ultimate != null){
                 return this.ability1 + " " + this.ability2 + " " + this.ultimate;
             }
             return null;
         }
-        private boolean ready() {
+        private boolean ready(){
             return this.ready;
         }
         private void stopCountdown(){
             if(countdown != null){
                 countdown.interrupt();
                 countdown = null;
-                System.out.println("Countdown should die");
                 if(round == 1){locked = false;} // After first round lobby is permanently locked 
             }
         }
@@ -414,9 +396,7 @@ public class Lobby extends Thread{
                     if (this.playerHandler.alive) {
                         this.playerHandler.alive = false;
                     } else {
-                        System.out.println("Lobby test");
                         if(!(playerRemoved)){
-                            System.out.println("Lobby testss");
                             playerHandler.removePlayer(false);
                         }
                         break;
@@ -425,16 +405,13 @@ public class Lobby extends Thread{
             }
         }
     }
-    class Countdown extends Thread {
-        Countdown() {
-        }
+    class Countdown extends Thread{ // This class is used when all players readied up this class waits and starts the game after a certian amount of time hahs pased without a player unreadying
+        Countdown() {}
         public void run() {
             try {
                 locked = true;
                 Thread.sleep(Const.COUNTDOWN);
-            } catch (Exception e) {
-
-            }
+            } catch (Exception e) {}
             if(countdown != null){
                 game.spawnPlayers();
                 for(PlayerHandler playerHandlers: playerHandlers){
@@ -471,14 +448,12 @@ public class Lobby extends Thread{
                     }
                 }
                 if(reviver == null){ // If player isn't being revived add to the timer
-                    System.out.println("bleeding" + counter);
                     counter++;
                 }
             }
             Player currentPlayer = playerHashMap.get(player);
             if(currentPlayer.getHealth() != Const.PLAYER_MAX_HEALTH && currentPlayer.downed()){
                 currentPlayer.die();
-                System.out.println("Player died");
                 boolean allPlayersDead = true;
                 for(PlayerHandler playerHandler: playerHandlers){
                     playerHandler.sHandler.print(Const.DIED + " " + currentPlayer.name());
@@ -519,7 +494,7 @@ public class Lobby extends Thread{
                 }
             }
             while(reviving && currentPlayer.getHealth() != Const.PLAYER_MAX_HEALTH);
-            if(currentPlayer.getHealth() == Const.PLAYER_MAX_HEALTH){
+            if(currentPlayer.getHealth() >= Const.PLAYER_MAX_HEALTH){
                 System.out.println("player revived");
                 for(PlayerHandler playerHandler: playerHandlers){ // Checking if there is someone still reviving the player
                     playerHandler.sHandler.print(Const.REVIVED + " " + currentPlayer.name());
@@ -530,7 +505,7 @@ public class Lobby extends Thread{
             }
         }
     }
-    private class Game {
+    private class Game{ // Class contains maze and enemyHandlers, can be regenerated
         private int rows;
         private int cols;
         private char[][] maze;
@@ -552,7 +527,6 @@ public class Lobby extends Thread{
             this.start.setX((int)(Math.random() * (this.cols - 2) + 1)); // x
             this.start.setY((int)(Math.random() * (this.rows - 2) + 1)); // y
             maze[this.start.y()][this.start.x()] = Const.START_TILE;
-            System.out.println("Start = " + start.x() + " " + start.y());
             boolean endGenerated = false;
             // End can generate anywhere as long as its not super close to the start
             int currentDistance = 0;
@@ -565,10 +539,9 @@ public class Lobby extends Thread{
                 if(currentDistance >=Const.MIN_DISTANCE){endGenerated = true;}
             }
             maze[this.end.y()][this.end.x()] = Const.END_TILE;
-            System.out.println("End = " + this.end.x() + " " + this.end.y());
             // Creating 1 path (all mazes will have at least 1 path which will be the one generated here but more paths can occur in the next step)
             boolean endReached = false;
-            Queue<Coordinate> visitQueue = new LinkedList<Coordinate>();
+            Queue<Coordinate> visitQueue = new LinkedList<Coordinate>(); 
             Coordinate currentPoint = new Coordinate(this.start.x(), this.start.y());
             while (!(endReached)){
                 int xDistance = this.end.x() - currentPoint.x(); // Positive - end on the left, Negative - end on the right, 0 - Right above or below end
@@ -581,7 +554,7 @@ public class Lobby extends Thread{
                             currentPoint.setX(currentPoint.x() + direction);
                         }else{directionChoice = 1;}
                     }
-                    if(directionChoice == 1){
+                    else if(directionChoice == 1){
                         int direction = -(yDistance / Math.abs(yDistance)); // Using - absolute value to get opposite of good direction
                         currentPoint.setY(currentPoint.y() + direction);
                     }
@@ -593,17 +566,17 @@ public class Lobby extends Thread{
                             currentPoint.setX(currentPoint.x() + direction);
                         }else{directionChoice = 1;}
                     }
-                    if(directionChoice == 1){
+                    else if(directionChoice == 1){ 
                         int direction = yDistance / Math.abs(yDistance); // Using absolute value to get -1 if direction was negative
                         currentPoint.setY(currentPoint.y() + direction);
                     }
                     currentDistance--;
                 }
-                if(visitQueue.contains(currentPoint)){System.out.println("contains");}
-                visitQueue.add(new Coordinate(currentPoint.x(), currentPoint.y()));
-                if(currentDistance == 1){endReached = true;}
+                visitQueue.add(new Coordinate(currentPoint.x(), currentPoint.y())); // Will be used later
+                if(currentDistance == 1){endReached = true;} // Not going right up to the end because the end will be increased in size later
             }
-            Coordinate[] directions = {new Coordinate(1,0), new Coordinate(0,1), new Coordinate(-1,0), new Coordinate(0,-1)};
+            // This code segment will open up the maze adding more paths randomly potientially creating an additonal solution to the maze and hiding the first solution
+            Coordinate[] directions = {new Coordinate(0,-1), new Coordinate(1,0), new Coordinate(0,1), new Coordinate(-1,0)}; // Up, Right, Down, Left
             while(!(visitQueue.isEmpty())){
                 currentPoint = visitQueue.poll();
                 maze[currentPoint.y()][currentPoint.x()] = Const.PATH;
@@ -611,7 +584,7 @@ public class Lobby extends Thread{
                     Coordinate nextPoint = new Coordinate(currentPoint.x() + direction.x(), currentPoint.y() + direction.y());
                     if(nextPoint.x() >= 0 && nextPoint.x() < this.cols && nextPoint.y() >= 0 && nextPoint.y() < this.rows && 
                         maze[nextPoint.y()][nextPoint.x()] == 0){
-                        int tileChoice = (int)(Math.random() *(100  + 1)); // 1-Const.PATH_CHANCE(inclusive) = Path, Const.PATh_CHANCe - 100 = Wall
+                        int tileChoice = (int)(Math.random() * (100 + 1)); // 1-Const.PATH_CHANCE(inclusive) = Path, Const.PATh_CHANCe - 100 = Wall
                         if(tileChoice >=1 && tileChoice <= Const.PATH_CHANCE){
                             visitQueue.add(nextPoint);
                         }else if(tileChoice > Const.PATH_CHANCE && tileChoice <= 100){
@@ -620,7 +593,6 @@ public class Lobby extends Thread{
                     }
                 }
             }
-            // Randomly placing walls and paths
             // Making start and end areas larger
             Coordinate[] adjCoordinates = {new Coordinate(1,0), new Coordinate(0,1), new Coordinate(-1,0), new Coordinate(0,-1),
                                             new Coordinate(1,1), new Coordinate(1,-1), new Coordinate(-1,1), new Coordinate(-1, -1)};
@@ -631,6 +603,7 @@ public class Lobby extends Thread{
                     maze[end.y() + adjCoordinate.y()][end.x() + adjCoordinate.x()] = Const.END_TILE; 
                 }
             }
+            /* This code segment can be uncommented to print the maze into the console so the server can see
             System.out.println("MAZE--------");
             for(int y = 0; y < maze.length; y++){
                 String row = "";
@@ -641,16 +614,15 @@ public class Lobby extends Thread{
                     row = row + " " + maze[y][x];
                 }   
                 System.out.println(row);
-            }
+            }*/
             this.enemyHandler = new EnemyHandler(Const.MAX_ENEMIES + (round - 1) * Const.ENEMIES_INCREMENT);
             return this.maze;
         }
 
         public int[] calculateFov(Player player){
-            int[] fov = new int[4]; // 0 - topLeftX, 1 - topLeftY, 2 - bottomRightX, 3 - bottomRightY
+            int[] fov = new int[4]; // 0 - number of rows in fov, 1 - number of cols in fov, 2 - bottomRightX, 3 - bottomRightY
             int playerXTile = (player.getX() + Const.PLAYER_DIMENSIONS / 2) / Const.TILE_DIMENSIONS;
             int playerYTile = (player.getY() + Const.PLAYER_DIMENSIONS / 2) / Const.TILE_DIMENSIONS;
-            //System.out.print("Player tile - " + playerXTile + " " + playerYTile);
             // Using Math.min and Math.max to make sure if player is close to edge no array out of bounds exception happens
             // Player can maximum seen 9 tiles wide or 7 tiles high. Perfect situation if all tiles are fully show is an 8x6 tileset (1200/150)x(900/150)
             int topX = Math.max(0, playerXTile - 4);
@@ -659,9 +631,7 @@ public class Lobby extends Thread{
             int botY = Math.min(cols - 1, playerYTile + 4); // 1 added more so that a 9x7 can be drawn
             int cols = botX - topX + 1; // Adding 1 to include the right most col so that a 9x7 can be drawn
             int rows = botY - topY + 1; // Adding 1 to include the lower most row so that a 9x7 can be drawn
-            //System.out.print(" |dimensions-" + topX + " " + botX + " " + topY + " " + + botY + " " + rows + " " + cols);
             fov[0] = rows; fov[1] = cols; fov[2] = topX; fov[3] = topY;
-            //System.out.print("Player tile - " + playerXTile + " " + playerYTile + " " + topX + " " + topY + " " + botX + " " + botY);
             return fov;
         }
     
@@ -669,8 +639,6 @@ public class Lobby extends Thread{
             Coordinate topLeftStart = new Coordinate(this.start.x() - 1, this.start.y() - 1);
             for(int y = 0, playerCount = 0; y < 2 && playerCount < players.size(); y++){
                 for(int x = 0; x < 2 && playerCount < players.size(); x++, playerCount++){
-                    //System.out.println("Coords - " + topLeftStart.x() * Const.TILE_DIMENSIONS + " " + topLeftStart.y() * Const.TILE_DIMENSIONS);
-                    //System.out.println("Coords - " + (topLeftStart.x() + 2 * x) * Const.TILE_DIMENSIONS + " " + (toWEpLeftStart.y() + 2 * y) * Const.TILE_DIMENSIONS + " " + ((topLeftStart.x() + 2 * x) * Const.TILE_DIMENSIONS + + Const.TILE_DIMENSIONS/2) + " " + ((topLeftStart.y() + 2 * y) * Const.TILE_DIMENSIONS + + Const.TILE_DIMENSIONS/2));
                     players.get(playerCount).setCoords(((topLeftStart.x() + 2 * x) * Const.TILE_DIMENSIONS) + Const.TILE_DIMENSIONS/2, ((topLeftStart.y() + 2 * y) * Const.TILE_DIMENSIONS) + Const.TILE_DIMENSIONS/2);
                 }
             }
@@ -683,7 +651,7 @@ public class Lobby extends Thread{
             public EnemyHandler(int maxEnemies){
                 this.maxEnemies = maxEnemies;
                 enemies = new ArrayList<Enemy>();
-                while(enemies.size() < maxEnemies){
+                while(enemies.size() < this.maxEnemies){
                     Enemy newEnemy = addEnemy();
                     for(PlayerHandler playerHandler: playerHandlers){ // When lobby is generated this code won't run but this is useful for after a new round is reached
                         playerHandler.sHandler.print(Const.NEWE + " " + newEnemy.getX() + " " + newEnemy.getY() + " " + newEnemy.getHealth());
@@ -695,15 +663,14 @@ public class Lobby extends Thread{
                 Stack<Integer> deadEnemies = new Stack<Integer>();
                 int attackTimer = 0;
                 while(playing){
-                    //System.out.println("enemy playing");
                     try{
                         Thread.sleep(15); 
                     }catch(Exception e){}
                     int idCounter = 0;
                     for(Enemy enemy: enemies){
-                        if(enemy.getHealth() > 0){
+                        if(enemy.getHealth() > 0 && !(enemy.inWall())){
                             boolean enemyMoved = enemy.move(players);
-                            //System.out.println("enemy moved " + enemyMoved);
+                            //System.out.print(" enemy moved " + enemyMoved);
                             if(enemyMoved){
                                 for(PlayerHandler playerHandler: playerHandlers){
                                     playerHandler.sHandler.print(Const.ENEMY + " " + idCounter + " " + enemy.getX() + " " + enemy.getY() + " " + enemy.getHealth());
@@ -721,9 +688,9 @@ public class Lobby extends Thread{
                         }
                         idCounter++;
                     }
-                    if(attackTimer < Const.ENEMY_ATTACKS_SPEED){attackTimer++;}
+                    if(attackTimer < Const.ENEMY_ATTACKS_SPEED){attackTimer = attackTimer + (enemies.size());} // Adding based on enemy size to prevent large enemy games to have enemies attacking slowly
                     else{attackTimer = 0;}
-                    while(!(deadEnemies.isEmpty())){
+                    while(!(deadEnemies.isEmpty())){ // Remove enemy and add a new one in its place
                         int id = deadEnemies.pop();
                         enemies.remove(id);
                         Enemy newEnemy = addEnemy();
@@ -732,7 +699,6 @@ public class Lobby extends Thread{
                             playerHandler.sHandler.print(Const.NEWE + " " + newEnemy.getX() + " " + newEnemy.getY() + " " + newEnemy.getHealth());
                         }
                     }
-
                     try{
                         Thread.sleep(Const.ENEMY_MOVEMENT_BREAK); // Making it so enemies dont move at lightning speed
                     }catch(Exception e){}
@@ -759,16 +725,13 @@ public class Lobby extends Thread{
                 }
                 int enemyX = enemyXSquare * Const.TILE_DIMENSIONS + (Const.TILE_DIMENSIONS - Const.ENEMY_DIMENSIONS)/2;
                 int enemyY = enemyYSquare * Const.TILE_DIMENSIONS + (Const.TILE_DIMENSIONS - Const.ENEMY_DIMENSIONS)/2;
-                //int enemyX = enemyXSquare * Const.TILE_DIMENSIONS;
-                //int enemyY = enemyYSquare * Const.TILE_DIMENSIONS;
                 Enemy enemy = new Enemy(enemyX, enemyY, maze, round);
                 enemies.add(enemy);
                 System.out.println("enemy added");
                 return enemy;
             }
         }
-
-        private class Coordinate{
+        private class Coordinate{ // Class made to make sure coordinates can be added to queue because sometimes certian coordinates wouldn't be added because there were "duplicates" due to the nature of Integer
             private int x;
             private int y;
             public Coordinate(int x, int y){

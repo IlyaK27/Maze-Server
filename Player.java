@@ -1,3 +1,11 @@
+/**
+ * Final Game Player Class
+ * @Author Ilya Kononov
+ * @Date = January 22 2023
+ * This is the class for the Player of the game
+ * Houses the state/position of the player and their various buffs
+ */
+
 import java.awt.Rectangle;
 import java.util.ArrayList;
 
@@ -9,32 +17,36 @@ public class Player {
     private Rectangle hitbox;
     private int direction;
     private int health;
-    private int speed;
-    private int damageReduction;
     private boolean onEnd; // This boolean is true if the player is currently standing on an end square
     private boolean alive;
     private boolean downed; // Player is not dead yet but will die if not revived
-    private boolean invisible; // Enemys won't detect this player while this is true
-    private boolean invulnerable; // Enemies won't be able to do damage to the player while this is true
     private boolean attackReady;
     private AttackThread attacker;
+    // Buffs
+    private int maxHealth;
+    private int damage;
+    private int attackSpeed;
+    private int speed;
+    private int damageReduction;
+    private int lifeSteal;
+    private boolean passiveHealing;
+    private boolean cloaked; // Enemys will have a harder time detecting this player if this is true
+
 
     public Player(String playerName, String color){
         this.name = playerName;
         this.color = color;
         this.direction = 0;
         this.health = Const.PLAYER_MAX_HEALTH;
-        this.speed = 1;
-        this.damageReduction = 1;
         this.alive = true;
         this.downed = false;
         this.hitbox = new Rectangle(0, 0, Const.PLAYER_DIMENSIONS, Const.PLAYER_DIMENSIONS);
-        this.invulnerable = false;
-        this.invisible = false;
         this.attackReady = true;
         this.attacker = new AttackThread();
         this.attacker.start();
-    }   
+        resetBuffs();
+    } 
+    // Getters and Setters
     public String name(){
         return this.name;
     }
@@ -63,8 +75,61 @@ public class Player {
         return this.downed;
     }
     public void setDown(boolean down){
-        this.downed = true;
+        this.downed = down;
     }
+    public boolean attackReady(){
+        return this.attackReady;
+    }
+    public boolean cloaked(){
+        return this.cloaked;
+    }
+    public Rectangle getHitbox(){
+        return this.hitbox;
+    }
+    public void setOnEnd(boolean onEnd){
+        this.onEnd = onEnd;
+    }
+    public void die(){
+        this.alive = false;
+    }
+    // Setting the abilities
+    public void buffMaxHealth(){
+        this.maxHealth = Const.PLAYER_MAX_HEALTH + Const.MAX_HEALTH_ABILITY;
+        this.health = this.maxHealth;
+    }
+    public void buffDamage(){
+        this.damage = Const.PLAYER_DAMAGE + Const.PLAYER_DAMAGE_BUFF;
+    }
+    public void buffAttackSpeed(){
+        this.attackSpeed = Const.PLAYER_ATTACK_SPEED + Const.ATTACK_SPEED_BUFF;
+    }
+    public void buffSpeed(){
+        this.speed = Const.PLAYER_SPEED + Const.SPEED_BUFF;
+    }
+    public void addToughness(){
+        this.damageReduction = Const.DAMAGE_REDUCTION;
+    }
+    public void addLifeSteal(){
+        this.lifeSteal = Const.LIFE_STEAL;
+    }
+    public void addHealing(){
+        this.passiveHealing = Const.PASSIVE_HEALING;
+    }
+    public void addCloak(){
+        this.cloaked = true;
+    }
+    public void resetBuffs(){
+        this.maxHealth = Const.PLAYER_MAX_HEALTH;
+        this.health = Const.PLAYER_MAX_HEALTH;
+        this.damage = Const.PLAYER_DAMAGE;
+        this.attackSpeed = Const.PLAYER_ATTACK_SPEED;
+        this.speed = Const.PLAYER_MOVEMENT_SPEED;
+        this.damageReduction = 0;
+        this.lifeSteal = 0;
+        this.passiveHealing = false;
+        this.cloaked = false;
+    }
+
     public void attack(ArrayList<Enemy> enemies){
         int directionEven = this.direction % 2; // If this is 0 the player is facing up or down, if its 1 its odd and they are facing left or right
         Rectangle attackHitbox;
@@ -78,28 +143,12 @@ public class Player {
             attackHitbox = new Rectangle(attackX, this.y, Const.ATTACK_RANGE, Const.PLAYER_DIMENSIONS);
         }
         for(Enemy enemy: enemies){
-            System.out.println("Attempted to hit enemy");
             if(attackHitbox.intersects(enemy.getHitbox())){
-                enemy.damage(Const.PLAYER_DAMAGE);
-                System.out.println("Enemy hit");
+                enemy.damage(this.damage);
+                this.heal(this.damage * this.lifeSteal); // If player's life steal is 0 they just won't heal
             }
         }
         this.attackReady = false;
-    }
-    public boolean attackReady(){
-        return this.attackReady;
-    }
-    public boolean invisible(){
-        return this.invisible;
-    }
-    public Rectangle getHitbox(){
-        return this.hitbox;
-    }
-    public void setOnEnd(boolean onEnd){
-        this.onEnd = onEnd;
-    }
-    public void die(){
-        this.alive = false;
     }
     public void move(int direction, char[][] maze){
         this.direction = direction;
@@ -176,13 +225,12 @@ public class Player {
         this.hitbox.setLocation(this.x, this.y);
     }
     public void heal(int healthGained){
-        this.health = Math.min(Const.PLAYER_MAX_HEALTH, this.health + healthGained); // Using Math.min so player can't go over 100 health    
+        this.health = Math.min(this.maxHealth, this.health + healthGained); // Using Math.min so player can't go over 100 health    
     }
     public void damage(int damage){
-        System.out.println("Trying to damage " + invulnerable + " " + downed);
-        if(!(invulnerable) && this.downed == false){ // Can't damage while downed or invulnerable
+        System.out.println("Trying to damage " + downed);
+        if(this.downed == false){ // Can't damage while downed or invulnerable
             this.health = Math.max(0, this.health - damage * damageReduction);
-            System.out.println("damaged " + this.health);
         }
     }
     public void reset(){
