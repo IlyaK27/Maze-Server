@@ -81,7 +81,7 @@ public class Enemy {
         // Finding the closest player and if they are within the detection range 
         for(Player player: players){
             int playerDistance = (int)Math.sqrt(Math.pow(this.x - player.getX(), 2) + Math.pow(this.y - player.getY(), 2));
-            if(player.alive() && !(player.downed()) && !(player.cloaked()) && (closestPlayer == null || closestDistance > playerDistance)){
+            if(player.alive() && !(player.downed()) && (closestPlayer == null || closestDistance > playerDistance)){
                 closestPlayer = player;
                 closestDistance = playerDistance;
             }
@@ -90,7 +90,7 @@ public class Enemy {
         int tileY = (this.y + Const.ENEMY_DIMENSIONS / 2) / Const.TILE_DIMENSIONS;
         int x = this.x;
         int y = this.y;
-        if(closestPlayer != null && closestDistance <= Const.ENEMY_RANGE){ // If there is a valid player close
+        if(closestPlayer != null && !(closestPlayer.cloaked()) && closestDistance <= Const.ENEMY_RANGE || closestPlayer.cloaked() && closestDistance <= Const.ENEMY_RANGE - Const.CLOAK_REDUCTION){ // If there is a valid player close
             this.angle = calculateAngle(closestPlayer.getX(), closestPlayer.getY());
             x = this.x + xChange();
             y = this.y + yChange();
@@ -103,7 +103,6 @@ public class Enemy {
                     if(adjRect.intersects(this.hitbox) && maze[adjRectYTile][adjRectXTile] == Const.WALL){ // Checking if enemy has collided with any walls
                         if(adjRect.contains(this.hitbox)){ // If the enemy somehow ended up fully inside the wall it will get deleted and respawned
                             this.inWall = true;
-                            System.out.println("enemy In wall");
                         }else{ // If the player hit a wall
                             // These variables are to make sure the right collision spot is checked
                             int xDistance = (int)Math.abs(adjRect.getCenterX() - (x + Const.ENEMY_DIMENSIONS / 2));
@@ -136,6 +135,5 @@ public class Enemy {
     }
     public void damage(int damage){
         this.health = Math.max(0, this.health - damage);
-        System.out.println("Enemy health" + this.health);
     }
 }

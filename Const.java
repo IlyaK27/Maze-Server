@@ -2,36 +2,51 @@ import java.util.HashMap;
 public class Const {
     public static final int PORT = 5001;
     public static final int LOBBY_SIZE = 4;
-    // Map width and height
-
-
-    public static final int CLIENT_VIEW_RADIUS = 1500;
-
+    
     public static final int HEARTBEAT_RATE = 60000;
     public static final int COUNTDOWN = 3000; // 3 seconds
-    
-    public static final int TPS = 50;
 
-    public static final double radians(int angle) {
-        return angle / 180d * Math.PI;
-    }
-    // Conditional speed formula
-    public static final int speed(int radius) {
-        if (radius < 50) return 20;
-        else if (radius < 100) return 25;
-        else return 30;
-    }
-    /* // exponential speed formula
-    public static final int speed(int radius) {
-        return (int)(5 * Math.pow(0.9, (radius - 30))) + 3;
-    }
-    */
+    // Ability names
+    public static final String MAX_HEATH_NAME = "MAX_HEALTH";
+    public static final String CLOAKED_NAME = "CLOAKED";
+    public static final String LIFE_STEAL_NAME = "LIFE_STEAL";
+    public static final String SHARPENED_NAME = "SHARPENED";
+    public static final String HEALTH_REGEN_NAME = "HEALTH_REGEN";
 
-    // Player colors
+    public static final String HEAL_NAME = "HEAL";
+    public static final String INVESTIGATE_NAME = "INVESTIGATE";
+    public static final String SAVAGE_BLOW_NAME = "SAVAGE_BLOW";
+    public static final String SWIFT_MOVES_NAME = "SWIFT_MOVES";
+
+    public static final String TIME_STOP_NAME = "TIME_STOP";
+    public static final String FORTIFY_NAME = "FORTIFY";
+    public static final String FLAMING_RAGE_NAME = "FLAMING_RAGE";
+
+    // Ability cooldowns and durations and values
+    public static final int HEALING_INTERVAL = 30;
+    public static final int SWIFT_MOVES_BUFF = 7;
+    public static final int SWIFT_MOVES_COOLDOWN = 8500;
+    public static final int SWIFT_MOVES_DURATION = 3000;
+    public static final int PASSIVE_HEALING_AMOUNT = 1;
+    public static final int HEAL_COOLDOWN = 7000;
+    public static final int SAVAGE_BLOW_COOLDOWN = 6000;
+    public static final int INVESTIGATE_RANGE = 3;
+    public static final int INVESTIGATE_COOLDOWN = 12000;
+    public static final int INVESTIGATE_DURATION = 2500;
+    public static final int RAGE_ATTACK_BUFF = 30;
+    public static final double RAGE_ATTACK_SPEED_BUFF = 0.75;
+    public static final int RAGE_COOLDOWN = 19000;
+    public static final int RAGE_DURATION = 5000;
+    public static final double FORTIFY_AMOUNT = 0.75;
+    public static final int FORTIFY_COOLDOWN = 20000;
+    public static final int FORTIFY_DURATION = 4500;
+    public static final int TIME_STOP_COOLDOWN = 25000;
+    public static final int TIME_STOP_DURATION = 3500;
 
     // Maze tiles
     public static final char START_TILE = 'S';
     public static final char PATH = 'P';
+    public static final char OPTIMAL_PATH = 'O';
     public static final char WALL = 'W';
     public static final char END_TILE = 'E';
     // Maze info
@@ -44,16 +59,21 @@ public class Const {
     public static final int PLAYER_MAX_HEALTH = 100;
     public static final int PLAYER_ATTACK_SPEED = 500; // Can attack twice per second
     public static final int ATTACK_RANGE = 40; // How far the attack goes from the player
+    public static final int BIG_ATTACK_RANGE = 60; // How far the attack goes from the player
+    public static final int BIG_ATTACK_MULTIPLIER = 3; // How much stronger than normal attack
     public static final int PLAYER_DAMAGE = 30;
+    public static final int CLOAK_REDUCTION = TILE_DIMENSIONS * 2;
+    public static final int SHARPENED_DAMAGE = 10;
+    public static final double LIFE_STEAL_AMOUNT = 0.25;
     public static final int ENEMY_DIMENSIONS = 120;
     public static final int MAX_ENEMIES = 8;
     public static final int ENEMIES_INCREMENT = 4;
-    public static final int ENEMY_MOVEMENT_SPEED = 6;
+    public static final int ENEMY_MOVEMENT_SPEED = 4;
     public static final int ENEMY_HEALTH = 200;
     public static final int ENEMY_HEALTH_INCREMENT = 50;
     public static final int ENEMY_DAMAGE = 25;
-    public static final int ENEMY_DAMAGE_INCREMENT = 50;
-    public static final int ENEMY_ATTACKS_SPEED = 20;
+    public static final int ENEMY_DAMAGE_INCREMENT = 10;
+    public static final int ENEMY_ATTACKS_SPEED = 125;
     public static final int ENEMY_RANGE = TILE_DIMENSIONS * 5;
     public static final int ENEMY_MOVEMENT_BREAK = 45;
     public static final int MAZE_INCREASE = 5; // Difference in dimensions of maze after reach round
@@ -76,8 +96,7 @@ public class Const {
     public static final String UNREADY = "UNREADY"; // Player is not ready. Automatically happens when player goes to reselect abilities
     public static final String MOVE = "MOVE"; // Client gives lobby what direction they just went
     public static final String ATTACK = "ATTACK"; // Client used normal attack 
-    public static final String ABILITY1 = "ABILITY1"; // Client used first ability  
-    public static final String ABILITY2 = "ABILITY2"; // Client used second ability
+    public static final String ABILITY = "ABILITY"; // Client used ability  
     public static final String ULTIMATE = "ULTIMATE"; // Client used ultimate ability
     public static final String DRAWN = "DRAWN"; // Client has drawn their map so send new map update
     public static final String SPECTATE = "SPECTATE"; // Client tells server the want to spectate the provided player
@@ -107,13 +126,8 @@ public class Const {
     public static final String DIE = "DIE"; // Client has died
     public static final String WIN = "WIN"; // Player(s) have won this round send them to the mid round screen
     public static final String LOSE = "LOSE"; // Player(s) have lost the game send them to the game over screen
-    public static final String ABILITY1_READY = "ABILITY1"; // Tells client their first ability is off cooldown
-    public static final String ABILITY2_READY = "ABILITY2"; // Tells client their second ability is off cooldown
-    public static final String ULTIMATE_READY = "ULTIMATE"; // Tells client their ultimate ability is off cooldown
-    public static final String BOUNDS = "BOUNDS"; // Tells client the size of the play area
-    public static final String START = "START"; // Tells client there is a start tile here
-    public static final String END = "END"; // Tells client there is a end tile here
-    public static final String WALl = "WALL"; //Tells client there is a wall tile here
+    public static final String ABILITY_READY = "ABILITY_READY"; // Tells client their ability is off cooldown
+    public static final String ULTIMATE_READY = "ULTIMATE_READY"; // Tells client their ultimate ability is off cooldown
 
     public static final int PLAYER_MOVEMENT_SPEED = 10;
     private static final Integer[] MOVE_UP = {0, -1};
@@ -129,7 +143,6 @@ public class Const {
         }
     };
     public static final Integer[][] ADJACENT_SQUARES = {{-1, -1}, {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}};
-    //public static final Integer[][] ADJACENT_SQUARES = {{-1, 1}, {0, 1}, {1, 1} , {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}};
     private static final Integer[][] UP_TILES = {ADJACENT_SQUARES[0], ADJACENT_SQUARES[1], ADJACENT_SQUARES[2]};
     private static final Integer[][] RIGHT_TILES = {ADJACENT_SQUARES[2], ADJACENT_SQUARES[3], ADJACENT_SQUARES[4]};
     private static final Integer[][] DOWN_TILES = {ADJACENT_SQUARES[4], ADJACENT_SQUARES[5], ADJACENT_SQUARES[6]};

@@ -49,6 +49,7 @@ public class Lobby extends Thread{
     public void run(){
         while(hasPlayers){
             System.out.print("");
+            int healingTimer = 0;
             while(playing){
                 try{
                     Thread.sleep(10); 
@@ -64,28 +65,28 @@ public class Lobby extends Thread{
                             for(int x = 0; x < fovDimensions[1]; x++){
                                 rowMessage  = rowMessage + " " + maze[y + fovDimensions[3]][x + fovDimensions[2]];
                             }
-                            //System.out.print(" Row-" + rowMessage);
                             playerHandler.sHandler.print(rowMessage);
                         }
                     }
                     Player currentPlayer = playerHashMap.get(playerHandler);
                     if(currentPlayer.getHealth() == 0 && !(currentPlayer.downed())){
                         currentPlayer.setDown(true);
-                        System.out.println("player downed");
                         for(PlayerHandler handlers: playerHandlers){
                             handlers.sHandler.print(Const.DOWNED + " " + currentPlayer.name());
                         }
                         Bleeder bleeder = new Bleeder(playerHandler);
+                        bleeder.start();
+                    }
+                    if(currentPlayer.passivelyHealing() && (healingTimer >= Const.HEALING_INTERVAL)){ // Healing players who have the passive healing passive
+                        currentPlayer.heal(Const.PASSIVE_HEALING_AMOUNT);
                     }
                     if(!(currentPlayer.onEnd()) && currentPlayer.alive()){levelBeaten = false;}
                 }
+                if(healingTimer >= Const.HEALING_INTERVAL){healingTimer = 0;}
+                else{healingTimer = healingTimer + players.size();}
                 if(levelBeaten && playing){endGame(true);}
             }
         }
-    }
-
-    public String name(){
-        return this.name;
     }
     public void addPlayer(Socket socket, Server.PlayerHandler sHandler, String playerName){
         PlayerHandler playerHandler = new PlayerHandler(socket, sHandler);
@@ -107,7 +108,6 @@ public class Lobby extends Thread{
         Player player = new Player(playerName, colors.poll());
         playerHandler.currentPlayer = player;
         for(PlayerHandler players: playerHandlers){ // Telling other players a player has joined
-            System.out.println("New player for current lobby");
             players.sHandler.print(Const.NEW_PLAYER + " " + playerName + " " + player.color()); // Client will decode the hex using Color.decode() method
         }
         this.playerHandlers.add(playerHandler);
@@ -137,17 +137,24 @@ public class Lobby extends Thread{
         this.countdown = new Countdown();
         countdown.start();
     }
+    public String name(){
+        return this.name;
+    }
     private void endGame(boolean won){
         // Reseting players
         playing = false;
         if(won){
             round++;
             this.maze = new char[Const.STARTING_ROWS + (round * Const.MAZE_INCREASE)][Const.STARTING_COLS + (round * Const.MAZE_INCREASE)];
+            this.game.enemyHandler.interrupt();
             this.game = new Game(Const.STARTING_ROWS + (round * Const.MAZE_INCREASE), Const.STARTING_COLS + (round * Const.MAZE_INCREASE), Const.MIN_DISTANCE + (round * 2));
             this.maze = this.game.constructMaze();
             for(PlayerHandler playerHandler: playerHandlers){
                 playerHashMap.get(playerHandler).reset();
                 playerHandler.sHandler.print(Const.WIN);
+                // Making abilities ready
+                playerHandler.abilitiesReady.replace(playerHandler.ability, true);
+                playerHandler.abilitiesReady.replace(playerHandler.ultimate, true);
             }
         }else{
             for(PlayerHandler playerHandler: playerHandlers){
@@ -158,7 +165,18 @@ public class Lobby extends Thread{
             }
         }
     }
-
+    public boolean playing(){
+        return this.playing;
+    }
+    public Game getGame(){
+        return this.game;
+    }
+    public Lobby lobby(){
+        return this;
+    }
+    public char[][] getMaze(){
+        return this.maze;
+    }
     //----------------------------------------------------------------
     class PlayerHandler extends Thread { 
         Socket socket;
@@ -166,13 +184,16 @@ public class Lobby extends Thread{
         BufferedReader input;
         public boolean alive = true;
         Heartbeat heartbeat;
-        private String ability1;
-        private String ability2;
-        private String ultimate;
+        private String passiveName;
+        private String abilityName;
+        private String ultimateName;
+        private Ability ability;
+        private Ability ultimate;
         Server.PlayerHandler sHandler;
         private boolean ready;
         private boolean drawn;
         private Player currentPlayer;
+        private HashMap <Ability, Boolean> abilitiesReady;
         
         public PlayerHandler(Socket socket, Server.PlayerHandler sHandler) { 
             this.socket = socket;
@@ -181,15 +202,11 @@ public class Lobby extends Thread{
             this.sHandler = sHandler;
             this.ready = false;
             this.drawn = true;
+            this.abilitiesReady = new HashMap<Ability,Boolean>();
         }
         // Whether the socket is dead
         public boolean isDead() {
             return this.socket == null || this.output == null || this.input == null;
-        }
-        // Kill the player's ball
-        public void kill() {
-            //this.ball = null;
-            this.sHandler.print("DIE");
         }
         public void run() {
             try {
@@ -236,25 +253,20 @@ public class Lobby extends Thread{
                                     }
                                 }
                             }
-                            else if (args[0].equals(Const.MY_ABILITIES)) { // MY_ABILITIES ability1Name ability2Name ultimateName    
-                                this.ability1 = args[1];
-                                this.ability2 = args[2];
-                                this.ultimate = args[3];
-                                if(ability1 != null && ability2 != null && ultimate != null){
+                            else if (args[0].equals(Const.MY_ABILITIES)) { // MY_ABILITIES passiveName abilityName ultimateName    
+                                this.passiveName = args[1];
+                                this.abilityName = args[2];
+                                this.ultimateName = args[3];
+                                if(passiveName != null && abilityName != null && ultimateName != null){
                                     for(PlayerHandler player: playerHandlers){
                                         if(player.equals(this)){
-                                            System.out.println("EQUAL" + player.equals(this));
-                                            this.sHandler.print(Const.ABILITIES + " " + playerHashMap.get(this).name() + " " + ability1 + " " + ability2 + " " + ultimate + " ME");
+                                            this.sHandler.print(Const.ABILITIES + " " + playerHashMap.get(this).name() + " " + passiveName + " " + abilityName + " " + ultimateName + " ME");
                                         }
                                         else{
-                                            System.out.println("Other" + player.equals(this));
-                                            player.sHandler.print(Const.ABILITIES + " " + playerHashMap.get(this).name() + " " + ability1 + " " + ability2 + " " + ultimate);
+                                            player.sHandler.print(Const.ABILITIES + " " + playerHashMap.get(this).name() + " " + passiveName + " " + abilityName + " " + ultimateName);
                                         }
                                     }
                                 }
-                                //playerHashMap.get(this).setAbility1(ability1);
-                                //playerHashMap.get(this).setAbility2(ability2);
-                                //playerHashMap.get(this).setUltimate(ultimate);
                             }
                             else if (args[0].equals(Const.READY)) { // READY    
                                 ready = !ready;
@@ -268,7 +280,6 @@ public class Lobby extends Thread{
                                             allReady = false;
                                         }
                                     }if(allReady){
-                                        System.out.println("All players ready");
                                         startGameCountdown();
                                     } // If everyone is ready start the countdown timer for the game
                                 }else{
@@ -285,7 +296,7 @@ public class Lobby extends Thread{
                                     playerHashMap.get(this).move(direction, maze);
                                     Player player = playerHashMap.get(this);
                                     for(PlayerHandler playerHandler: playerHandlers){
-                                        playerHandler.sHandler.print(Const.PLAYER + " " + player.name() + " " + player.getX() + " " + player.getY() + " " + player.getDirection() + " " + player.getHealth());
+                                        playerHandler.sHandler.print(Const.PLAYER + " " + player.name() + " " + player.getX() + " " + player.getY() + " " + player.getDirection() + " " + (int)(((double)player.getHealth() / player.getMaxHealth()) * 100));
                                     }
                                     if(maze[(player.getY() + Const.PLAYER_DIMENSIONS / 2) / Const.TILE_DIMENSIONS][(player.getX() + Const.PLAYER_DIMENSIONS / 2)  / Const.TILE_DIMENSIONS] == Const.END_TILE){player.setOnEnd(true);}
                                     else {player.setOnEnd(false);}
@@ -304,6 +315,24 @@ public class Lobby extends Thread{
                                     player.attack(game.enemyHandler.enemies);
                                 }
                             }
+                            else if (args[0].equals(Const.ABILITY)) { // ABILITY
+                                if(abilitiesReady.get(ability) && !(playerHashMap.get(this).downed()) && playerHashMap.get(this).alive()){
+                                    boolean used = ability.useAbility();
+                                    if(used){
+                                        abilitiesReady.replace(ability, true, false);
+                                        this.sHandler.print(Const.ABILITY);
+                                    }
+                                }
+                            }
+                            else if (args[0].equals(Const.ULTIMATE)) { // ULTIMATE
+                                if(abilitiesReady.get(ultimate) && !(playerHashMap.get(this).downed()) && playerHashMap.get(this).alive()){
+                                    boolean used = ultimate.useAbility();
+                                    if(used){
+                                        abilitiesReady.replace(ultimate, true, false);
+                                        this.sHandler.print(Const.ULTIMATE);
+                                    }
+                                }
+                            }
                             else if (args[0].equals(Const.SPECTATE)) { // SPECTATE playerName    
                                 String playerName = args[1];
                                 Player spectatingPlayer;
@@ -318,6 +347,21 @@ public class Lobby extends Thread{
                         } catch (Exception e) {
                             this.sHandler.print("LOBBY ERROR invalid arguments");
                             e.printStackTrace();
+                        }
+                        // Checking if abilities are ready 
+                        if(playing && abilitiesReady.get(ability) == false){
+                            boolean abilityReady = ability.abilityReady();
+                            if(abilityReady){
+                                abilitiesReady.replace(ability, false, true);
+                                this.sHandler.print(Const.ABILITY_READY);
+                            }
+                        }
+                        if(playing && abilitiesReady.get(ultimate) == false){
+                            boolean ultimateReady = ultimate.abilityReady();
+                            if(ultimateReady){
+                                abilitiesReady.replace(ultimate, false, true);
+                                this.sHandler.print(Const.ULTIMATE_READY);
+                            }
                         }
                     }
                 }
@@ -348,10 +392,46 @@ public class Lobby extends Thread{
             this.close();
         }
         public String getAbilities(){
-            if(ability1 != null && ability2 != null && ultimate != null){
-                return this.ability1 + " " + this.ability2 + " " + this.ultimate;
+            if(passiveName != null && abilityName != null && ultimateName != null){
+                return this.passiveName + " " + this.abilityName + " " + this.ultimateName;
             }
             return null;
+        }
+        // Once the game starts for the first time these 3 methods will be called and the different abilities will get instantiated and the player will get their respective abilities/passives
+        public void setPassive(){ 
+            if(this.passiveName.equals(Const.MAX_HEATH_NAME)){
+                playerHashMap.get(this).buffMaxHealth(Const.PLAYER_MAX_HEALTH / 2);
+            }else if(this.passiveName.equals(Const.CLOAKED_NAME)){
+                playerHashMap.get(this).addCloak(true);
+            }else if(this.passiveName.equals(Const.LIFE_STEAL_NAME)){
+                playerHashMap.get(this).addLifeSteal(Const.LIFE_STEAL_AMOUNT);
+            }else if(this.passiveName.equals(Const.SHARPENED_NAME)){
+                playerHashMap.get(this).setDamage(Const.SHARPENED_DAMAGE);
+            }else if(this.passiveName.equals(Const.HEALTH_REGEN_NAME)){
+                playerHashMap.get(this).addHealing(true);
+            }
+        }
+        public void setAbility(){
+            if(this.abilityName.equals(Const.HEAL_NAME)){
+                this.ability = new HealAbility(playerHashMap.get(this));
+            }else if(this.abilityName.equals(Const.INVESTIGATE_NAME)){
+                this.ability = new InvestigateAbility(playerHashMap.get(this), lobby());
+            }else if(this.abilityName.equals(Const.SAVAGE_BLOW_NAME)){
+                this.ability = new SavageBlowAbility(game, playerHashMap.get(this));
+            }else if(this.abilityName.equals(Const.SWIFT_MOVES_NAME)){
+                this.ability = new SwiftMovesAbility(playerHashMap.get(this), lobby());
+            }
+            this.abilitiesReady.put(ability, true);
+        }
+        public void setUltimate(){
+            if(this.ultimateName.equals(Const.TIME_STOP_NAME)){
+                this.ultimate = new TimeStopAbility(game, playerHashMap.get(this));
+            }else if(this.ultimateName.equals(Const.FORTIFY_NAME)){
+                this.ultimate = new FortifyAbility(playerHashMap.get(this), lobby());
+            }else if(this.ultimateName.equals(Const.FLAMING_RAGE_NAME)){
+                this.ultimate = new FlamingRageAbility(playerHashMap.get(this), lobby());
+            }
+            this.abilitiesReady.put(ultimate, true);
         }
         private boolean ready(){
             return this.ready;
@@ -413,11 +493,18 @@ public class Lobby extends Thread{
                 Thread.sleep(Const.COUNTDOWN);
             } catch (Exception e) {}
             if(countdown != null){
+                if(round == 1){ // Setting the abilities at the start of the first round only
+                    for(PlayerHandler playerHandler: playerHandlers){
+                        playerHandler.setPassive();
+                        playerHandler.setAbility();
+                        playerHandler.setUltimate();
+                    }
+                }
                 game.spawnPlayers();
                 for(PlayerHandler playerHandlers: playerHandlers){
                     playerHandlers.ready = false;
                     for(Player player: players){ // Telling all of the clients all of the players positions
-                        playerHandlers.sHandler.print(Const.PLAYER + " " + player.name() + " " + player.getX() + " " + player.getY() + " " + player.getDirection() + " " + player.getHealth());
+                        playerHandlers.sHandler.print(Const.PLAYER + " " + player.name() + " " + player.getX() + " " + player.getY() + " " + player.getDirection() + " " + (int)(((double)player.getHealth() / player.getMaxHealth()) * 100));
                     }
                     playerHandlers.sHandler.print(Const.GAME_START + " " + playerHashMap.get(playerHandlers).name());
                 }
@@ -433,7 +520,6 @@ public class Lobby extends Thread{
         private PlayerReviver reviver;
         Bleeder(PlayerHandler player) {
             this.player = player;
-            this.start();
         }
         public void run() {
             int counter = 0;
@@ -484,18 +570,17 @@ public class Lobby extends Thread{
                 try {
                     Thread.sleep(Const.REVIVE_INTERVAL);
                 } catch (Exception e) {}
-                currentPlayer.heal(Const.PLAYER_MAX_HEALTH / 10);
+                currentPlayer.heal(currentPlayer.getMaxHealth() / 10);
                 for(PlayerHandler playerHandler: playerHandlers){ // Checking if there is someone still reviving the player
-                    playerHandler.sHandler.print(Const.PLAYER + " " + currentPlayer.name() + " " + currentPlayer.getX() + " " + currentPlayer.getY() + " " + currentPlayer.getDirection() + " " + currentPlayer.getHealth());
+                    playerHandler.sHandler.print(Const.PLAYER + " " + currentPlayer.name() + " " + currentPlayer.getX() + " " + currentPlayer.getY() + " " + currentPlayer.getDirection() + " " + (int)(((double)currentPlayer.getHealth() / currentPlayer.getMaxHealth()) * 100));
                     Player otherPlayer = playerHashMap.get(playerHandler);
                     if(currentPlayer.getHitbox().intersects(otherPlayer.getHitbox()) && !(otherPlayer.name().equals(currentPlayer.name()) && otherPlayer.alive() && !(otherPlayer.downed()))){
                         reviving = true;
                     }
                 }
             }
-            while(reviving && currentPlayer.getHealth() != Const.PLAYER_MAX_HEALTH);
-            if(currentPlayer.getHealth() >= Const.PLAYER_MAX_HEALTH){
-                System.out.println("player revived");
+            while(reviving && currentPlayer.getHealth() != currentPlayer.getMaxHealth());
+            if(currentPlayer.getHealth() >= currentPlayer.getMaxHealth()){
                 for(PlayerHandler playerHandler: playerHandlers){ // Checking if there is someone still reviving the player
                     playerHandler.sHandler.print(Const.REVIVED + " " + currentPlayer.name());
                 }
@@ -505,7 +590,7 @@ public class Lobby extends Thread{
             }
         }
     }
-    private class Game{ // Class contains maze and enemyHandlers, can be regenerated
+    public class Game{ // Class contains maze and enemyHandlers, can be regenerated
         private int rows;
         private int cols;
         private char[][] maze;
@@ -546,7 +631,7 @@ public class Lobby extends Thread{
             while (!(endReached)){
                 int xDistance = this.end.x() - currentPoint.x(); // Positive - end on the left, Negative - end on the right, 0 - Right above or below end
                 int yDistance = this.end.y() - currentPoint.y(); // Positive - end below, Negative - end above, 0 - To the left or right of end
-                int directionChoice = (int)(Math.random()); // 0 = horizontal, 1 = vertical
+                int directionChoice = (int)(Math.random() * 2); // 0 = horizontal, 1 = vertical
                 if(currentDistance < this.minimumDistance){ // Go away from end until distance is minimum distance 
                     if(directionChoice == 0){
                         if(xDistance != 0){
@@ -554,9 +639,14 @@ public class Lobby extends Thread{
                             currentPoint.setX(currentPoint.x() + direction);
                         }else{directionChoice = 1;}
                     }
-                    else if(directionChoice == 1){
-                        int direction = -(yDistance / Math.abs(yDistance)); // Using - absolute value to get opposite of good direction
-                        currentPoint.setY(currentPoint.y() + direction);
+                    if(directionChoice == 1){
+                        if(yDistance != 0){
+                            int direction = -(yDistance / Math.abs(yDistance)); // Using - absolute value to get opposite of good direction
+                            currentPoint.setY(currentPoint.y() + direction);
+                        }else{
+                            int direction = -(xDistance / Math.abs(xDistance)); // Using - absolute value to get opposite of good direction
+                            currentPoint.setX(currentPoint.x() + direction);
+                        }
                     }
                     currentDistance++;
                 }else{ // Go straight towards end
@@ -566,9 +656,14 @@ public class Lobby extends Thread{
                             currentPoint.setX(currentPoint.x() + direction);
                         }else{directionChoice = 1;}
                     }
-                    else if(directionChoice == 1){ 
-                        int direction = yDistance / Math.abs(yDistance); // Using absolute value to get -1 if direction was negative
-                        currentPoint.setY(currentPoint.y() + direction);
+                    if(directionChoice == 1){ 
+                        if(yDistance != 0){
+                            int direction = yDistance / Math.abs(yDistance); // Using absolute value to get -1 if direction was negative
+                            currentPoint.setY(currentPoint.y() + direction);
+                        }else{
+                            int direction = xDistance / Math.abs(xDistance); // Using absolute value to get -1 if direction was negative
+                            currentPoint.setX(currentPoint.x() + direction);
+                        }
                     }
                     currentDistance--;
                 }
@@ -603,7 +698,7 @@ public class Lobby extends Thread{
                     maze[end.y() + adjCoordinate.y()][end.x() + adjCoordinate.x()] = Const.END_TILE; 
                 }
             }
-            /* This code segment can be uncommented to print the maze into the console so the server can see
+            // This code segment can be uncommented to print the maze into the console so the server can see
             System.out.println("MAZE--------");
             for(int y = 0; y < maze.length; y++){
                 String row = "";
@@ -614,7 +709,7 @@ public class Lobby extends Thread{
                     row = row + " " + maze[y][x];
                 }   
                 System.out.println(row);
-            }*/
+            }
             this.enemyHandler = new EnemyHandler(Const.MAX_ENEMIES + (round - 1) * Const.ENEMIES_INCREMENT);
             return this.maze;
         }
@@ -633,8 +728,7 @@ public class Lobby extends Thread{
             int rows = botY - topY + 1; // Adding 1 to include the lower most row so that a 9x7 can be drawn
             fov[0] = rows; fov[1] = cols; fov[2] = topX; fov[3] = topY;
             return fov;
-        }
-    
+        }   
         public void spawnPlayers(){ // This will spawn the players on the 4 squares on the corner of the spawn box going from top left to bottom right
             Coordinate topLeftStart = new Coordinate(this.start.x() - 1, this.start.y() - 1);
             for(int y = 0, playerCount = 0; y < 2 && playerCount < players.size(); y++){
@@ -643,23 +737,35 @@ public class Lobby extends Thread{
                 }
             }
         }
-    
+        public boolean stopTime(){
+            try {
+                this.enemyHandler.stopTime();
+            } catch (Exception e){return false;} // Time wasn't stopped
+            return true;
+        }
+        public ArrayList<Enemy> getEnemies(){
+            return this.enemyHandler.enemies;
+        }
+        public Coordinate getEnd(){
+            return this.end;
+        }
         // Classes
         public class EnemyHandler extends Thread{
             private int maxEnemies;
             private ArrayList<Enemy> enemies;
+            private boolean timeStopped;
             public EnemyHandler(int maxEnemies){
                 this.maxEnemies = maxEnemies;
                 enemies = new ArrayList<Enemy>();
+                timeStopped = false;
+            }
+            public void run(){
                 while(enemies.size() < this.maxEnemies){
                     Enemy newEnemy = addEnemy();
                     for(PlayerHandler playerHandler: playerHandlers){ // When lobby is generated this code won't run but this is useful for after a new round is reached
                         playerHandler.sHandler.print(Const.NEWE + " " + newEnemy.getX() + " " + newEnemy.getY() + " " + newEnemy.getHealth());
                     }
                 }
-                System.out.println(enemies.size());
-            }
-            public void run(){
                 Stack<Integer> deadEnemies = new Stack<Integer>();
                 int attackTimer = 0;
                 while(playing){
@@ -667,43 +773,52 @@ public class Lobby extends Thread{
                         Thread.sleep(15); 
                     }catch(Exception e){}
                     int idCounter = 0;
-                    for(Enemy enemy: enemies){
-                        if(enemy.getHealth() > 0 && !(enemy.inWall())){
-                            boolean enemyMoved = enemy.move(players);
-                            //System.out.print(" enemy moved " + enemyMoved);
-                            if(enemyMoved){
-                                for(PlayerHandler playerHandler: playerHandlers){
-                                    playerHandler.sHandler.print(Const.ENEMY + " " + idCounter + " " + enemy.getX() + " " + enemy.getY() + " " + enemy.getHealth());
-                                }
-                            }
-                            if(attackTimer >= Const.ENEMY_ATTACKS_SPEED){
-                                for(Player player: players){
-                                    if(enemy.getHitbox().intersects(player.getHitbox())){
-                                        player.damage(enemy.getDamage());
+                    if(!(timeStopped)){
+                        for(Enemy enemy: enemies){
+                            if(enemy.getHealth() > 0 && !(enemy.inWall())){
+                                boolean enemyMoved = enemy.move(players);
+                                if(enemyMoved){
+                                    for(PlayerHandler playerHandler: playerHandlers){
+                                        playerHandler.sHandler.print(Const.ENEMY + " " + idCounter + " " + enemy.getX() + " " + enemy.getY() + " " + enemy.getHealth());
                                     }
                                 }
+                                if(attackTimer >= Const.ENEMY_ATTACKS_SPEED){
+                                    for(Player player: players){
+                                        if(enemy.getHitbox().intersects(player.getHitbox())){
+                                            player.damage(enemy.getDamage());
+                                        }
+                                    }
+                                }
+                            }else{
+                                deadEnemies.add(idCounter);
                             }
-                        }else{
-                            deadEnemies.add(idCounter);
+                            idCounter++;
                         }
-                        idCounter++;
-                    }
-                    if(attackTimer < Const.ENEMY_ATTACKS_SPEED){attackTimer = attackTimer + (enemies.size());} // Adding based on enemy size to prevent large enemy games to have enemies attacking slowly
-                    else{attackTimer = 0;}
-                    while(!(deadEnemies.isEmpty())){ // Remove enemy and add a new one in its place
-                        int id = deadEnemies.pop();
-                        enemies.remove(id);
-                        Enemy newEnemy = addEnemy();
-                        for(PlayerHandler playerHandler: playerHandlers){
-                            playerHandler.sHandler.print(Const.KILLEDE + " " + id);
-                            playerHandler.sHandler.print(Const.NEWE + " " + newEnemy.getX() + " " + newEnemy.getY() + " " + newEnemy.getHealth());
+                        if(attackTimer < Const.ENEMY_ATTACKS_SPEED){attackTimer = attackTimer + (enemies.size());} // Adding based on enemy size to prevent large enemy games to have enemies attacking slowly
+                        else{attackTimer = 0;}
+                        while(!(deadEnemies.isEmpty())){ // Remove enemy and add a new one in its place
+                            int id = deadEnemies.pop();
+                            enemies.remove(id);
+                            Enemy newEnemy = addEnemy();
+                            for(PlayerHandler playerHandler: playerHandlers){
+                                playerHandler.sHandler.print(Const.KILLEDE + " " + id);
+                                playerHandler.sHandler.print(Const.NEWE + " " + newEnemy.getX() + " " + newEnemy.getY() + " " + newEnemy.getHealth());
+                            }
                         }
+                        try{
+                            Thread.sleep(Const.ENEMY_MOVEMENT_BREAK); // Making it so enemies dont move at lightning speed
+                        }catch(Exception e){}
                     }
-                    try{
-                        Thread.sleep(Const.ENEMY_MOVEMENT_BREAK); // Making it so enemies dont move at lightning speed
-                    }catch(Exception e){}
-
+                    else{ // Stopping the time for enemies
+                        try{
+                            Thread.sleep(Const.TIME_STOP_DURATION);
+                            timeStopped = false;
+                        }catch (Exception e){}
+                    }
                 }
+            }
+            public void stopTime(){
+                timeStopped = true;
             }
             private Enemy addEnemy(){
                 boolean cantSpawn = true;
@@ -727,11 +842,10 @@ public class Lobby extends Thread{
                 int enemyY = enemyYSquare * Const.TILE_DIMENSIONS + (Const.TILE_DIMENSIONS - Const.ENEMY_DIMENSIONS)/2;
                 Enemy enemy = new Enemy(enemyX, enemyY, maze, round);
                 enemies.add(enemy);
-                System.out.println("enemy added");
                 return enemy;
             }
         }
-        private class Coordinate{ // Class made to make sure coordinates can be added to queue because sometimes certian coordinates wouldn't be added because there were "duplicates" due to the nature of Integer
+        public class Coordinate{ // Class made to make sure coordinates can be added to queue because sometimes certian coordinates wouldn't be added because there were "duplicates" due to the nature of Integer
             private int x;
             private int y;
             public Coordinate(int x, int y){

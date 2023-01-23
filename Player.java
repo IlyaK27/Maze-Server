@@ -25,10 +25,10 @@ public class Player {
     // Buffs
     private int maxHealth;
     private int damage;
-    private int attackSpeed;
+    private double attackSpeed;
     private int speed;
-    private int damageReduction;
-    private int lifeSteal;
+    private double damageReduction;
+    private double lifeSteal;
     private boolean passiveHealing;
     private boolean cloaked; // Enemys will have a harder time detecting this player if this is true
 
@@ -62,6 +62,9 @@ public class Player {
     public int getHealth(){
         return this.health;
     }
+    public int getMaxHealth(){
+        return this.maxHealth;
+    }
     public String color(){
         return this.color;
     }
@@ -93,38 +96,42 @@ public class Player {
         this.alive = false;
     }
     // Setting the abilities
-    public void buffMaxHealth(){
-        this.maxHealth = Const.PLAYER_MAX_HEALTH + Const.MAX_HEALTH_ABILITY;
+    public void buffMaxHealth(int addedHealth){
+        this.maxHealth = this.maxHealth + addedHealth;
         this.health = this.maxHealth;
     }
-    public void buffDamage(){
-        this.damage = Const.PLAYER_DAMAGE + Const.PLAYER_DAMAGE_BUFF;
+    // for all the methods that contain a paramater somethingDiff it means the difference between the current and new attribute. Its not a buff since it can be negative nor a nerf since it can be positive. So its a difference
+    public void setDamage(int damageDiff){
+        this.damage = this.damage + damageDiff;
     }
-    public void buffAttackSpeed(){
-        this.attackSpeed = Const.PLAYER_ATTACK_SPEED + Const.ATTACK_SPEED_BUFF;
+    public void setAttackSpeed(double attackSpeedDiff){
+        this.attackSpeed = this.attackSpeed + attackSpeedDiff;
     }
-    public void buffSpeed(){
-        this.speed = Const.PLAYER_SPEED + Const.SPEED_BUFF;
+    public void setSpeed(int speedDiff){
+        this.speed = this.speed + speedDiff;
     }
-    public void addToughness(){
-        this.damageReduction = Const.DAMAGE_REDUCTION;
+    public void setToughness(double toughnessDiff){
+        this.damageReduction = this.damageReduction + toughnessDiff;
     }
-    public void addLifeSteal(){
-        this.lifeSteal = Const.LIFE_STEAL;
+    public void addLifeSteal(double lifeStealDiff){
+        this.lifeSteal = this.lifeSteal + lifeStealDiff;
     }
-    public void addHealing(){
-        this.passiveHealing = Const.PASSIVE_HEALING;
+    public void addHealing(boolean healingState){
+        this.passiveHealing = healingState;
     }
-    public void addCloak(){
-        this.cloaked = true;
+    public void addCloak(boolean cloakState){
+        this.cloaked = cloakState;
+    }
+    public boolean passivelyHealing(){
+        return this.passiveHealing;
     }
     public void resetBuffs(){
         this.maxHealth = Const.PLAYER_MAX_HEALTH;
         this.health = Const.PLAYER_MAX_HEALTH;
         this.damage = Const.PLAYER_DAMAGE;
-        this.attackSpeed = Const.PLAYER_ATTACK_SPEED;
+        this.attackSpeed = 1;
         this.speed = Const.PLAYER_MOVEMENT_SPEED;
-        this.damageReduction = 0;
+        this.damageReduction = 1;
         this.lifeSteal = 0;
         this.passiveHealing = false;
         this.cloaked = false;
@@ -145,10 +152,31 @@ public class Player {
         for(Enemy enemy: enemies){
             if(attackHitbox.intersects(enemy.getHitbox())){
                 enemy.damage(this.damage);
-                this.heal(this.damage * this.lifeSteal); // If player's life steal is 0 they just won't heal
+                this.heal((int)(this.damage * this.lifeSteal)); // If player's life steal is 0 they just won't heal
             }
         }
         this.attackReady = false;
+    }
+    public boolean heavyAttack(ArrayList<Enemy> enemies){
+        int directionEven = this.direction % 2; // If this is 0 the player is facing up or down, if its 1 its odd and they are facing left or right
+        Rectangle attackHitbox;
+        if(directionEven == 0){
+            int attackY = this.y - Const.BIG_ATTACK_RANGE;
+            if(direction == 2){attackY = this.y + Const.PLAYER_DIMENSIONS;}
+            attackHitbox = new Rectangle(this.x, attackY, Const.PLAYER_DIMENSIONS, Const.ATTACK_RANGE);
+        }else{
+            int attackX = this.x - Const.BIG_ATTACK_RANGE;
+            if(direction == 1){attackX = this.x + Const.PLAYER_DIMENSIONS;}
+            attackHitbox = new Rectangle(attackX, this.y, Const.BIG_ATTACK_RANGE, Const.PLAYER_DIMENSIONS);
+        }
+        for(Enemy enemy: enemies){
+            if(attackHitbox.intersects(enemy.getHitbox())){
+                enemy.damage(this.damage * Const.BIG_ATTACK_MULTIPLIER);
+                this.heal((int)(this.damage * Const.BIG_ATTACK_MULTIPLIER * this.lifeSteal)); // If player's life steal is 0 they just won't heal
+            }
+        }
+        // No need to reset attackTimer since this is an ability and not a normal attack
+        return true; // Attack worked
     }
     public void move(int direction, char[][] maze){
         this.direction = direction;
@@ -228,15 +256,14 @@ public class Player {
         this.health = Math.min(this.maxHealth, this.health + healthGained); // Using Math.min so player can't go over 100 health    
     }
     public void damage(int damage){
-        System.out.println("Trying to damage " + downed);
-        if(this.downed == false){ // Can't damage while downed or invulnerable
-            this.health = Math.max(0, this.health - damage * damageReduction);
+        if(!(this.downed)){ // Can't damage while downed or invulnerable
+            this.health = Math.max(0, (int)(this.health - damage * damageReduction));
         }
     }
     public void reset(){
         direction = 0;
-        health = 100;
-        speed = 1;
+        health = maxHealth;
+        speed = Const.PLAYER_MOVEMENT_SPEED;
         damageReduction = 1;
         onEnd = false;
         alive = true;
@@ -247,10 +274,9 @@ public class Player {
         public void run(){
             while(true){
                 try {
-                    Thread.sleep(Const.PLAYER_ATTACK_SPEED);
+                    Thread.sleep((int)(Const.PLAYER_ATTACK_SPEED * attackSpeed));
                 } catch (Exception e) {}
                 if(!(attackReady)){
-                    System.out.println("Attack ready");
                     attackReady = true;
                 }
             }
