@@ -7,14 +7,14 @@
  */
 
 public class TimeStopAbility extends InstantAbility{
-    private Lobby.Game game;
-    public TimeStopAbility(Lobby.Game game, Player player){
+    private Lobby lobby;
+    public TimeStopAbility(Lobby lobby, Player player){
         super(player, Const.TIME_STOP_COOLDOWN);
-        this.game = game;
+        this.lobby = lobby;
     }
     
     public boolean doEffect(){
-        boolean timeStopped = game.stopTime();
+        boolean timeStopped = lobby.getGame().stopTime();
         return timeStopped;
     }
 }

@@ -2,7 +2,7 @@ import java.util.HashMap;
 public class Const {
     public static final int PORT = 5001;
     public static final int LOBBY_SIZE = 4;
-    
+
     public static final int HEARTBEAT_RATE = 60000;
     public static final int COUNTDOWN = 3000; // 3 seconds
 
@@ -66,7 +66,7 @@ public class Const {
     public static final int SHARPENED_DAMAGE = 10;
     public static final double LIFE_STEAL_AMOUNT = 0.25;
     public static final int ENEMY_DIMENSIONS = 120;
-    public static final int MAX_ENEMIES = 8;
+    public static final int MAX_ENEMIES = 6;
     public static final int ENEMIES_INCREMENT = 4;
     public static final int ENEMY_MOVEMENT_SPEED = 4;
     public static final int ENEMY_HEALTH = 200;

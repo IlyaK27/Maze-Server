@@ -117,7 +117,6 @@ public class Lobby extends Thread{
         for(PlayerHandler players: playerHandlers){ // Giving the player who just joined info on the players already in the lobby
             player = playerHashMap.get(players);
             while(playerHandler.output == null){System.out.print("");} // Sometimes playerHandler.sHandler.print happens before the input and output get initialized
-            System.out.println("New player");
             playerHandler.sHandler.print(Const.NEW_PLAYER + " " + playerHashMap.get(players).name() + " " + player.color());
             if(players.getAbilities() != null){playerHandler.sHandler.print(Const.ABILITIES + " " + playerHashMap.get(players).name() + " " + players.getAbilities());}
             if(players.ready){playerHandler.sHandler.print(Const.READY + " " + playerHashMap.get(players).name());}
@@ -155,6 +154,11 @@ public class Lobby extends Thread{
                 // Making abilities ready
                 playerHandler.abilitiesReady.replace(playerHandler.ability, true);
                 playerHandler.abilitiesReady.replace(playerHandler.ultimate, true);
+                for(Player player: players){ // Making sure the point of view is back on the right person if it was on someone else before round ended
+                    if(player.name().equals(playerHashMap.get(playerHandler).name())){
+                        playerHandler.currentPlayer = player;
+                    }
+                }
             }
         }else{
             for(PlayerHandler playerHandler: playerHandlers){
@@ -168,10 +172,10 @@ public class Lobby extends Thread{
     public boolean playing(){
         return this.playing;
     }
-    public Game getGame(){
+    public Game getGame(){ // Useful for some abilities
         return this.game;
     }
-    public Lobby lobby(){
+    public Lobby lobby(){ // Made this method to be able to get the lobby instance from innerclasses
         return this;
     }
     public char[][] getMaze(){
@@ -425,7 +429,7 @@ public class Lobby extends Thread{
         }
         public void setUltimate(){
             if(this.ultimateName.equals(Const.TIME_STOP_NAME)){
-                this.ultimate = new TimeStopAbility(game, playerHashMap.get(this));
+                this.ultimate = new TimeStopAbility(lobby(), playerHashMap.get(this));
             }else if(this.ultimateName.equals(Const.FORTIFY_NAME)){
                 this.ultimate = new FortifyAbility(playerHashMap.get(this), lobby());
             }else if(this.ultimateName.equals(Const.FLAMING_RAGE_NAME)){
@@ -529,7 +533,7 @@ public class Lobby extends Thread{
                 } catch (Exception e) {}
                 for(Player currentPlayer: players){
                     if(currentPlayer.getHitbox().intersects(playerHashMap.get(player).getHitbox()) && !(currentPlayer.name().equals(playerHashMap.get(player).name())) && reviver == null 
-                        && playerHashMap.get(player).alive() && (playerHashMap.get(player).downed())){
+                        && currentPlayer.alive() && !(currentPlayer.downed())){
                         reviver = new PlayerReviver(player, this);  
                     }
                 }
